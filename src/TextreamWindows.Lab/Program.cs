@@ -22,6 +22,7 @@ const string Usage = """
                         [--record 錄音.wav] [--log 紀錄.json] 存下這次的錄音與過程，覺得怪時拿來重現
                         [--wav 音檔] [--speed 1]  改播錄音檔，不開麥克風
                         [--model A] [--int8]
+                        [--lang zh|en]            辨識語言，跟主視窗的選項一樣（預設 zh）
 
     <模型> 是代號 A／B／C／D，或模型資料夾路徑。模型用 scripts/fetch_models.py 下載。
     音檔可以是 WAV 或 MP3（MP3 用 Windows 內建的 Media Foundation 解碼）。

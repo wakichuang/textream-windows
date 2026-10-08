@@ -30,6 +30,12 @@ public static class FollowCommand
         var recordPath = cl.Get("record") is { } r ? Path.GetFullPath(r) : null;
         var logPath = cl.Get("log") is { } l ? Path.GetFullPath(l) : null;
         var showRaw = cl.Flag("raw");
+        var language = cl.Get("lang") switch
+        {
+            null or "zh" => SpeechLanguage.TraditionalChinese,
+            "en" => SpeechLanguage.English,
+            var other => throw new ArgumentException($"--lang 只能是 zh 或 en，收到「{other}」"),
+        };
         var mic = wav is null ? Microphone.Find(cl.Get("device")) : null;
         cl.RejectUnknown();
 
@@ -42,12 +48,13 @@ public static class FollowCommand
         var totalReadable = Readable(prompt, prompt.CharacterCount);
         Console.WriteLine($"講稿：{Path.GetFileName(scriptPath)}（{totalReadable} 個字）");
         Console.WriteLine($"模型：{model}");
+        Console.WriteLine($"辨識語言：{(language == SpeechLanguage.English ? "English" : "繁體中文")}");
         Console.WriteLine(mic is not null ? $"麥克風：{mic.Name}" : $"錄音檔：{wav}（{speed:0.##} 倍速）");
 
         IAudioSource source = mic is not null ? new MicrophoneCapture(mic) : WavFileSource.FromFile(Path.GetFullPath(wav!), speed);
         using var _ = source;
         using var engine = new SpeechEngine(model, threads);
-        using var pipeline = new FollowPipeline(source, engine, new PromptSession(prompt, FollowMode.WordTracking));
+        using var pipeline = new FollowPipeline(source, engine, new PromptSession(prompt, FollowMode.WordTracking, language: language));
 
         var gate = new object();
         var heard = "";
