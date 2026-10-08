@@ -32,17 +32,26 @@ public sealed class PromptSession
     private string _lastSpokenText = "";
     private string _spokenAnchorPrefix = "";
 
-    public PromptSession(PromptScript prompt, FollowMode mode, double scrollSpeed = Session.ScrollSpeed.Default, PinyinTable? pinyin = null)
+    public PromptSession(
+        PromptScript prompt,
+        FollowMode mode,
+        double scrollSpeed = Session.ScrollSpeed.Default,
+        PinyinTable? pinyin = null,
+        SpeechLanguage language = SpeechLanguage.TraditionalChinese)
     {
         Prompt = prompt;
         Mode = mode;
+        Language = language;
         ScrollSpeed = Session.ScrollSpeed.Clamp(scrollSpeed);
-        _matcher = new PromptMatcher(prompt, pinyin: pinyin);
+        _matcher = new PromptMatcher(prompt, pinyin: pinyin, language: language);
     }
 
     public PromptScript Prompt { get; }
 
     public FollowMode Mode { get; }
+
+    /// <summary>逐字追蹤用哪一套比對規則（<see cref="SpeechLanguage"/>）。</summary>
+    public SpeechLanguage Language { get; }
 
     /// <summary>每秒幾個詞（中文一字一詞），夾在 <see cref="Session.ScrollSpeed.Minimum"/>～<see cref="Session.ScrollSpeed.Maximum"/>。</summary>
     public double ScrollSpeed { get; private set; }

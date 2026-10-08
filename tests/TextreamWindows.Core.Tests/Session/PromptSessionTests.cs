@@ -189,6 +189,24 @@ public class PromptSessionTests
         Assert.True(session.IsFinished);
     }
 
+    /// <summary>
+    /// 辨識語言 English（瓦基 2026-10-08）要一路傳到比對：講稿結尾「from the earth」辨識成「FROM THIS EARTH」，
+    /// English 規則讀得完，繁體中文規則停在最後一個詞前面（EN-02）。
+    /// </summary>
+    [Theory]
+    [InlineData(SpeechLanguage.English, true)]
+    [InlineData(SpeechLanguage.TraditionalChinese, false)]
+    public void WordTrackingUsesTheChosenSpeechLanguage(SpeechLanguage language, bool finishes)
+    {
+        var session = new PromptSession(new PromptScript("shall not perish from the earth."), FollowMode.WordTracking, language: language);
+        session.Start(0);
+
+        session.ProcessTranscript("SHALL NOT PERISH FROM THIS EARTH", 1);
+
+        Assert.Equal(language, session.Language);
+        Assert.Equal(finishes, session.IsFinished);
+    }
+
     [Fact]
     public void PausedWordTrackingIgnoresTranscripts()
     {
