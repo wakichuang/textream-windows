@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  介紹網站：<a href="https://textream.readingoutpost.com/"><strong>textream.readingoutpost.com</strong></a>
+</p>
+
+<p align="center">
   <a href="#下載">下載</a> · <a href="#三步驟開始用">怎麼用</a> · <a href="#介面與設定">介面與設定</a> · <a href="#檢查更新">檢查更新</a> · <a href="#注意事項">注意事項</a> · <a href="#給開發者">給開發者</a> · <a href="#關於作者">關於作者</a>
 </p>
 
@@ -177,9 +181,10 @@ Textream for Windows 由[瓦基](https://readingoutpost.com/)製作。我是書�
 
 ► 想認識更多關於我？
 
-- [閱讀前哨站](https://readingoutpost.com/)：我的書評部落格，寫讀過的書和心得
-- [下一本讀什麼？](https://readingoutpost.com/podcast/)：說書 Podcast
+- [閱讀前哨站](https://readingoutpost.com/)：我的書評部落格，寫讀過的好書與心得，也記錄把書中方法用在生活與工作的實踐。
+- [下一本讀什麼？](https://readingoutpost.com/podcast/)：我的說書節目，在 Podcast 與 [YouTube](https://www.youtube.com/@readingoutpost) 同步播出，用 30 分鐘帶你吸收一本好書的精華與心得。
 - [AI 瓦基第二大腦](https://readingoutpost.com/recommends/waki-ai/)：線上課程。你想讓 AI 成為工作夥伴，而不是用得越多越挫折嗎？我將一人公司的方法結合 AI 協作，設計出一套簡單好上手的 AI 課程。跟著流程走，透過十個專案包示範，帶你做出好成果。
+- 追蹤我：[Facebook](https://www.facebook.com/ReadingOutpost/)・[Instagram](https://www.instagram.com/readingoutpost/)・[Threads](https://www.threads.net/@readingoutpost)
 
 這個程式永遠免費。如果它讓你錄影時少低頭找幾次稿，**點顆星**我會很開心；但真正讓它變好的，是[回報一次追丟的狀況](https://github.com/wakichuang/textream-windows/issues/new?template=tracking-lost.md)，告訴我在哪一段高亮停住了，或跳到不對的地方。
 
