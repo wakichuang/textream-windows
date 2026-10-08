@@ -64,8 +64,8 @@ public sealed class WpfAppServices(Window owner) : IAppServices
         dialog.ShowDialog();
     }
 
-    public Task<IFollowRunner> StartFollowAsync(PromptScript prompt, FollowMode mode, double scrollSpeed, MicrophoneInfo? microphone, int startAt) =>
-        FollowRunners.StartAsync(prompt, mode, scrollSpeed, microphone, startAt);
+    public Task<IFollowRunner> StartFollowAsync(PromptScript prompt, FollowMode mode, double scrollSpeed, MicrophoneInfo? microphone, int startAt, SpeechLanguage language) =>
+        FollowRunners.StartAsync(prompt, mode, scrollSpeed, microphone, startAt, language);
 
     public IReadOnlyList<DisplayInfo> ListDisplays() => Displays.List();
 

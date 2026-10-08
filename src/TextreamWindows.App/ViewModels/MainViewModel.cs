@@ -45,6 +45,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly string _settingsPath;
     private ScriptDocument _document = new();
     private FollowMode _mode;
+    private SpeechLanguage _speechLanguage;
     private MicrophoneOption? _selectedMicrophone;
     private double _scrollSpeed;
     private IFollowRunner? _runner;
@@ -81,6 +82,7 @@ public sealed class MainViewModel : ObservableObject
         Microphones = services.ListMicrophones().Select(m => new MicrophoneOption(m)).ToList();
         var settings = AppSettings.Load(settingsPath);
         _mode = settings.Mode;
+        _speechLanguage = settings.SpeechLanguage;
         _scrollSpeed = settings.ScrollSpeed;
         Displays = services.ListDisplays().Select((d, i) => new DisplayOption(d, i + 1)).ToList();
         _overlayStyle = settings.OverlayStyle;
@@ -187,9 +189,20 @@ public sealed class MainViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(IsMicrophoneEnabled));
                 OnPropertyChanged(nameof(IsSpeedEnabled));
+                OnPropertyChanged(nameof(IsSpeechLanguageEnabled));
             }
         }
     }
+
+    /// <summary>講稿念的是哪種語言（瓦基 2026-10-08）：逐字追蹤照它選比對規則，模型不變。</summary>
+    public SpeechLanguage SpeechLanguage
+    {
+        get => _speechLanguage;
+        set => Set(ref _speechLanguage, value);
+    }
+
+    /// <summary>只有逐字追蹤聽字，另外兩種模式用不到辨識語言。</summary>
+    public bool IsSpeechLanguageEnabled => Mode == FollowMode.WordTracking && IsEditable;
 
     /// <summary>定速捲動不聽聲音，不用麥克風。</summary>
     public bool IsMicrophoneEnabled => Mode != FollowMode.Classic && IsEditable;
@@ -367,7 +380,7 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             var microphone = Mode == FollowMode.Classic ? null : SelectedMicrophone?.Info;
-            _runner = await _services.StartFollowAsync(prompt, Mode, ScrollSpeed, microphone, StartPoint(prompt));
+            _runner = await _services.StartFollowAsync(prompt, Mode, ScrollSpeed, microphone, StartPoint(prompt), SpeechLanguage);
             _runningPrompt = prompt;
             _stopRequested = false;
             _runClock.Restart();
@@ -515,6 +528,7 @@ public sealed class MainViewModel : ObservableObject
     {
         LastScriptPath = _document.FilePath,
         Mode = Mode,
+        SpeechLanguage = SpeechLanguage,
         MicrophoneId = SelectedMicrophone?.Info.Id,
         ScrollSpeed = ScrollSpeed,
         OverlayStyle = OverlayStyle,
@@ -658,6 +672,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsOverlayOpen));
         OnPropertyChanged(nameof(IsEditable));
         OnPropertyChanged(nameof(IsMicrophoneEnabled));
+        OnPropertyChanged(nameof(IsSpeechLanguageEnabled));
         OnPropertyChanged(nameof(IsSpeedEnabled));
         OnPropertyChanged(nameof(IsCapsuleSizeEnabled));
         OnPropertyChanged(nameof(IsDisplayChoiceEnabled));

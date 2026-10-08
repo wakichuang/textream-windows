@@ -25,7 +25,7 @@ public interface IAppServices
     /// 開始跟讀（逐字追蹤要載入模型，會花 1～2 秒），從講稿位置 <paramref name="startAt"/>（文字元素）開始。
     /// 失敗丟例外，訊息給瓦基看。
     /// </summary>
-    Task<IFollowRunner> StartFollowAsync(PromptScript prompt, FollowMode mode, double scrollSpeed, MicrophoneInfo? microphone, int startAt);
+    Task<IFollowRunner> StartFollowAsync(PromptScript prompt, FollowMode mode, double scrollSpeed, MicrophoneInfo? microphone, int startAt, SpeechLanguage language);
 
     /// <summary>目前接著的螢幕（DIP）。</summary>
     IReadOnlyList<DisplayInfo> ListDisplays();

@@ -126,6 +126,14 @@
                              IsChecked="{Binding Mode, Converter={StaticResource EnumEquals}, ConverterParameter=Classic}" />
                 <RadioButton Content="有講話才捲" GroupName="Mode" ToolTip="照設定的速度往前，但只在你講話時前進"
                              IsChecked="{Binding Mode, Converter={StaticResource EnumEquals}, ConverterParameter=VoiceActivated}" />
+                <!-- 辨識語言（瓦基 2026-10-08）：模型不變，切換的是比對規則；只有逐字追蹤用得到 -->
+                <TextBlock Text="辨識語言" Style="{StaticResource Label}" Margin="20,0,10,0" />
+                <RadioButton Content="繁體中文" GroupName="SpeechLanguage" IsEnabled="{Binding IsSpeechLanguageEnabled}"
+                             ToolTip="中文講稿（中間夾英文也可以）"
+                             IsChecked="{Binding SpeechLanguage, Converter={StaticResource EnumEquals}, ConverterParameter=TraditionalChinese}" />
+                <RadioButton Content="English" GroupName="SpeechLanguage" IsEnabled="{Binding IsSpeechLanguageEnabled}"
+                             ToolTip="整份都是英文的講稿"
+                             IsChecked="{Binding SpeechLanguage, Converter={StaticResource EnumEquals}, ConverterParameter=English}" />
             </StackPanel>
 
             <!-- 浮層樣式；全螢幕才用得到螢幕選單 -->

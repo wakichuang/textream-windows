@@ -244,6 +244,36 @@ public sealed class MainViewModelTests : IDisposable
         Assert.True(vm.HideFromCapture);
     }
 
+    /// <summary>瓦基 2026-10-08：編輯介面切換辨識語言（繁體中文／English），記在設定檔；只有逐字追蹤用得到。</summary>
+    [Fact]
+    public void TheSpeechLanguageChoiceIsRememberedAndOnlyMattersForWordTracking()
+    {
+        var first = Create();
+        Assert.Equal(SpeechLanguage.TraditionalChinese, first.SpeechLanguage);
+        Assert.True(first.IsSpeechLanguageEnabled);
+
+        first.Mode = FollowMode.Classic;
+        Assert.False(first.IsSpeechLanguageEnabled);
+        first.Mode = FollowMode.WordTracking;
+
+        first.SpeechLanguage = SpeechLanguage.English;
+        first.SaveSettings();
+
+        Assert.Equal(SpeechLanguage.English, Create().SpeechLanguage);
+    }
+
+    [Fact]
+    public void StartingPassesTheSpeechLanguage()
+    {
+        var vm = Create();
+        vm.ScriptText = "Four score and seven years ago.";
+        vm.SpeechLanguage = SpeechLanguage.English;
+
+        vm.StartStopCommand.Execute(null);
+
+        Assert.Equal(SpeechLanguage.English, Assert.Single(_services.Started).Language);
+    }
+
     [Fact]
     public void TheThemeChoiceIsRemembered()
     {
@@ -1005,7 +1035,7 @@ public sealed class MainViewModelTests : IDisposable
         public Exception? StartFailure { get; set; }
         public List<string> AskedToSave { get; } = [];
         public List<string> Errors { get; } = [];
-        public List<(PromptScript Prompt, FollowMode Mode, double Speed, MicrophoneInfo? Microphone, int StartAt)> Started { get; } = [];
+        public List<(PromptScript Prompt, FollowMode Mode, double Speed, MicrophoneInfo? Microphone, int StartAt, SpeechLanguage Language)> Started { get; } = [];
         public FakeRunner Runner { get; private set; } = new();
         public List<FakeOverlay> Overlays { get; } = [];
 
@@ -1046,13 +1076,13 @@ public sealed class MainViewModelTests : IDisposable
             OnError?.Invoke();
         }
 
-        public Task<IFollowRunner> StartFollowAsync(PromptScript prompt, FollowMode mode, double scrollSpeed, MicrophoneInfo? microphone, int startAt)
+        public Task<IFollowRunner> StartFollowAsync(PromptScript prompt, FollowMode mode, double scrollSpeed, MicrophoneInfo? microphone, int startAt, SpeechLanguage language)
         {
             if (StartFailure is not null)
             {
                 return Task.FromException<IFollowRunner>(StartFailure);
             }
-            Started.Add((prompt, mode, scrollSpeed, microphone, startAt));
+            Started.Add((prompt, mode, scrollSpeed, microphone, startAt, language));
             Runner = new FakeRunner { Progress = startAt };
             return Task.FromResult<IFollowRunner>(Runner);
         }

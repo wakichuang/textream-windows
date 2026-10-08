@@ -12,9 +12,9 @@ namespace TextreamWindows.App.Services;
 public static class FollowRunners
 {
     /// <summary>從講稿位置 <paramref name="startAt"/> 開始（瓦基在編輯器放的游標、或上次停下的地方）。</summary>
-    public static async Task<IFollowRunner> StartAsync(PromptScript prompt, FollowMode mode, double scrollSpeed, MicrophoneInfo? microphone, int startAt)
+    public static async Task<IFollowRunner> StartAsync(PromptScript prompt, FollowMode mode, double scrollSpeed, MicrophoneInfo? microphone, int startAt, SpeechLanguage language)
     {
-        var session = new PromptSession(prompt, mode, scrollSpeed);
+        var session = new PromptSession(prompt, mode, scrollSpeed, language: language);
         session.JumpTo(startAt, 0); // 還沒開始時跳：Start 會從這裡重新起算
         if (mode == FollowMode.Classic)
         {
