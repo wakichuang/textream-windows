@@ -70,4 +70,32 @@ public class PromptMatcherEnglishTests
 
         AssertReachesEnd(prompt, progress[^1], "EN-02");
     }
+
+    /// <summary>
+    /// 念一段講稿裡沒有的話（約 50 秒）：英文的 the、of、were、it 到處都是，2026-10-08 實測高亮被拖著往前跑了 43 個詞（中文 g06 是 0 字）。
+    /// 這裡的插話是〈第二次就職演說〉第二段，講稿把它拿掉了。
+    /// </summary>
+    [Fact]
+    public void EN03_AdLibDoesNotDragTheHighlight()
+    {
+        var prompt = new PromptScript(
+            "With high hope for the future, no prediction in regard to it is ventured.\n\n" +
+            "One-eighth of the whole population were colored slaves, not distributed generally over the Union, but localized in the southern part of it. " +
+            "These slaves constituted a peculiar and powerful interest.");
+        var matcher = English(prompt);
+
+        var progress = Feed(matcher,
+            "WITH HIGH HOPE FOR THE FUTURE NO PREDICTION IN REGARD TO IT IS VENTURED",
+            "ON THE OCCASION CORRESPONDING TO THIS FOUR YEARS AGO ALL THOUGHTS WERE ANXIOUSLY DIRECTED TO AN IMPENDING CIVIL WAR",
+            "ALL DREADED IT ALL SOUGHT TO AVERTED WHILE THE INAUGURAL ADDRESS WAS BEING DELIVERED FROM THIS PLACE DEVOTED ALL TOGETHER TO SAVING THE UNION WITHOUT WAR",
+            "INSURGENT AGENTS WERE IN THE CITY SEEKING TO DESTROY IT WITHOUT WAR SEEKING TO DISSOLVE THE UNION AND DIVIDE EFFECTS BY NEGOTIATION",
+            "BOTH PARTIES DEPRECATED WAR BUT ONE OF THEM WOULD MAKE WAR RATHER THAN LET THE NATION SURVIVE AND THE OTHER WOULD ACCEPT WAR RATHER THAN LET IT PERISH AND THE WAR CAME");
+
+        Assert.True(WordsRead(prompt, progress[^1]) - WordsRead(prompt, progress[0]) <= 2,
+            $"EN-03：插話期間高亮從第 {WordsRead(prompt, progress[0])} 個詞跑到第 {WordsRead(prompt, progress[^1])} 個詞");
+
+        var rejoined = Feed(matcher,
+            "ONE EIGHTH OF THE WHOLE POPULATION WERE COLORED SLAVES NOT DISTRIBUTED GENERALLY OVER THE UNION BUT LOCALIZED IN THE SOUTHERN PART OF IT THESE SLAVES CONSTITUTED A PECULIAR AND POWERFUL INTEREST");
+        AssertReachesEnd(prompt, rejoined[^1], "EN-03");
+    }
 }

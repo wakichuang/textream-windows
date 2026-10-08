@@ -35,7 +35,8 @@ internal sealed record MatchUnit(
     bool IsAnnotation,
     IReadOnlyList<MatchChar> Characters)
 {
-    public static List<MatchUnit> FromScript(PromptScript script, PinyinTable pinyin)
+    /// <param name="splitHyphens">English：有連字號的詞拆成幾個單位（one-eighth → one、eighth），辨識結果不會有連字號（EN-03）</param>
+    public static List<MatchUnit> FromScript(PromptScript script, PinyinTable pinyin, bool splitHyphens = false)
     {
         var words = script.Words;
         var units = new List<MatchUnit>(words.Count);
@@ -46,17 +47,56 @@ internal sealed record MatchUnit(
             var range = new CharRange(first.CharacterRange.Start, last.CharacterRange.End);
             var unit = Create(normalized.Text, range, pinyin);
             // 標點、emoji 這類沒有字母數字的詞，PromptScript 已經標成標註
-            units.Add(first.IsAnnotation || unit.Key.Length == 0 ? unit with { IsAnnotation = true } : unit);
+            if (first.IsAnnotation || unit.Key.Length == 0)
+            {
+                units.Add(unit with { IsAnnotation = true });
+            }
+            else if (splitHyphens && unit.Kind == MatchUnitKind.Word)
+            {
+                units.AddRange(SplitOnHyphens(normalized.Text, range, pinyin));
+            }
+            else
+            {
+                units.Add(unit);
+            }
         }
         return units;
     }
 
     /// <summary>辨識結果沒有原稿位置，範圍一律填 0；沒有字母數字的詞（標點）直接丟掉。</summary>
-    public static List<MatchUnit> FromTranscript(string transcript, PinyinTable pinyin) =>
+    public static List<MatchUnit> FromTranscript(string transcript, PinyinTable pinyin, bool splitHyphens = false) =>
         ChineseNumbers.Normalize(PromptTokenizer.SplitIntoWords(transcript))
-            .Select(w => Create(w.Text, new CharRange(0, TextElements.Split(w.Text).Length), pinyin))
+            .SelectMany(w =>
+            {
+                var range = new CharRange(0, TextElements.Split(w.Text).Length);
+                var unit = Create(w.Text, range, pinyin);
+                return splitHyphens && unit.Kind == MatchUnitKind.Word ? SplitOnHyphens(w.Text, range, pinyin) : [unit];
+            })
             .Where(u => u.Key.Length > 0)
             .ToList();
+
+    /// <summary>以連字號切開一個英文詞，每段一個單位、位置照原稿；沒有字母數字的段落不要。</summary>
+    private static IEnumerable<MatchUnit> SplitOnHyphens(string text, CharRange range, PinyinTable pinyin)
+    {
+        var elements = TextElements.Split(text);
+        var start = 0;
+        for (var i = 0; i <= elements.Length; i++)
+        {
+            if (i < elements.Length && elements[i] is not ("-" or "\u2010" or "\u2011"))
+            {
+                continue;
+            }
+            if (i > start)
+            {
+                var piece = Create(string.Concat(elements[start..i]), new CharRange(range.Start + start, range.Start + i), pinyin);
+                if (piece.Key.Length > 0)
+                {
+                    yield return piece;
+                }
+            }
+            start = i + 1;
+        }
+    }
 
     private static MatchUnit Create(string text, CharRange range, PinyinTable pinyin)
     {

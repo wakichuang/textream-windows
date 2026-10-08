@@ -42,7 +42,7 @@ public sealed class PromptMatcher
         Source = source;
         Language = language;
         _pinyin = pinyin ?? PinyinTable.Default;
-        _units = MatchUnit.FromScript(source, _pinyin);
+        _units = MatchUnit.FromScript(source, _pinyin, splitHyphens: language == SpeechLanguage.English);
         _slots = _units
             .SelectMany(u => u.IsAnnotation
                 ? [new Slot(true, default, u.Source.Start)]
@@ -72,18 +72,21 @@ public sealed class PromptMatcher
             return RecognizedCharacterCount;
         }
 
-        var spokenUnits = MatchUnit.FromTranscript(transcript, _pinyin);
+        var spokenUnits = MatchUnit.FromTranscript(transcript, _pinyin, splitHyphens: Language == SpeechLanguage.English);
         var spokenCharacters = spokenUnits.SelectMany(u => u.Characters).ToList();
-
-        var firstSlot = _slots.FindIndex(s => s.Start >= MatchStartOffset);
-        var characterResult = Progress(
-            Scan(_slots, firstSlot, spokenCharacters, s => s.IsSkip, (s, p) => CharactersMatch(s.Character, p), s => s.Character.IsHan ? 2 : 3, AcceptsRunAtScriptEnd),
-            firstSlot, _slots.Count, i => _slots[i].Start);
 
         var firstUnit = _units.FindIndex(u => u.Source.Start >= MatchStartOffset);
         var wordResult = Progress(
-            Scan(_units, firstUnit, spokenUnits, u => u.IsAnnotation, UnitsMatch, _ => 2, AcceptsRunAtScriptEnd),
+            Scan(_units, firstUnit, spokenUnits, u => u.IsAnnotation, UnitsMatch, _ => WordRunNeeded, AcceptsRunAtScriptEnd),
             firstUnit, _units.Count, i => _units[i].Source.Start);
+
+        // English 只看詞層：字元層把一個字母當一格，連對 3 個字母就算數，the、of、were 到處都湊得到，插話時會被拖著走（EN-03）
+        var firstSlot = _slots.FindIndex(s => s.Start >= MatchStartOffset);
+        var characterResult = Language == SpeechLanguage.English
+            ? wordResult
+            : Progress(
+                Scan(_slots, firstSlot, spokenCharacters, s => s.IsSkip, (s, p) => CharactersMatch(s.Character, p), s => s.Character.IsHan ? 2 : 3),
+                firstSlot, _slots.Count, i => _slots[i].Start);
 
         var best = SpeechTextAlignment.BestOffset(characterResult, wordResult);
         var rawCandidate = Math.Min(MatchStartOffset + best, Source.CharacterCount);
@@ -389,6 +392,12 @@ public sealed class PromptMatcher
         var position = end < count ? startOf(end) : Source.CharacterCount;
         return Math.Max(0, position - MatchStartOffset);
     }
+
+    /// <summary>
+    /// 詞層的防拖走：跳過或丟掉單位之後，要連續對上幾個詞才算數。
+    /// English 要 3 個：of the、in the、to the 這種兩個詞的組合到處都是，插話裡很容易湊到（EN-03）。
+    /// </summary>
+    private int WordRunNeeded => Language == SpeechLanguage.English ? 3 : 2;
 
     /// <summary>
     /// English：講稿最後幾個詞前面有一個詞沒聽清楚（「from the earth」辨識成「FROM THIS EARTH」）時，最後一個詞照樣算數，否則永遠到不了「讀完了」。
