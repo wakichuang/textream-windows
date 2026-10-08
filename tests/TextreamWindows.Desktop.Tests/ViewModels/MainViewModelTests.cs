@@ -1025,6 +1025,79 @@ public sealed class MainViewModelTests : IDisposable
         Assert.Equal(240, vm.CapsuleHeight);
     }
 
+    // ── 檢查更新（瓦基 2026-10-08，照 Mac 版 textream-zh） ──
+
+    private const string NewRelease = """{"tag_name": "v9.9.0", "html_url": "https://github.com/wakichuang/textream-windows/releases/tag/v9.9.0"}""";
+
+    [Fact]
+    public async Task ANewerReleaseAsksAndOpensTheDownloadPage()
+    {
+        _services.LatestRelease = NewRelease;
+        _services.UpdateAnswer = true;
+        var vm = Create();
+
+        await vm.CheckForUpdatesAsync(silent: true);
+
+        Assert.Equal(("9.9.0", "0.10.0"), Assert.Single(_services.UpdatesOffered));
+        Assert.Equal("https://github.com/wakichuang/textream-windows/releases/tag/v9.9.0", Assert.Single(_services.OpenedUrls));
+    }
+
+    [Fact]
+    public async Task SayingLaterOpensNothing()
+    {
+        _services.LatestRelease = NewRelease;
+        _services.UpdateAnswer = false;
+        var vm = Create();
+
+        await vm.CheckForUpdatesAsync(silent: false);
+
+        Assert.Single(_services.UpdatesOffered);
+        Assert.Empty(_services.OpenedUrls);
+    }
+
+    [Fact]
+    public async Task TheStartupCheckStaysQuietUnlessThereIsAnUpdate()
+    {
+        // 開程式時在背景查一次：最新版、沒網路、讀不懂都不出聲
+        foreach (var answer in new Func<string>[] { () => """{"tag_name": "v0.10.0", "html_url": "https://github.com/wakichuang/textream-windows/releases/tag/v0.10.0"}""", () => throw new HttpRequestException("沒有網路"), () => "壞掉" })
+        {
+            _services.LatestReleaseAnswer = answer;
+            await Create().CheckForUpdatesAsync(silent: true);
+        }
+
+        Assert.Empty(_services.UpdatesOffered);
+        Assert.Empty(_services.Infos);
+        Assert.Empty(_services.Errors);
+    }
+
+    [Fact]
+    public async Task TheCheckButtonAlwaysAnswers()
+    {
+        var vm = Create();
+        Assert.Equal("v0.10.0", vm.VersionText);
+
+        _services.LatestRelease = """{"tag_name": "v0.10.0", "html_url": "https://github.com/wakichuang/textream-windows/releases/tag/v0.10.0"}""";
+        await vm.CheckForUpdatesAsync(silent: false);
+        Assert.Contains("最新", Assert.Single(_services.Infos));
+
+        _services.LatestReleaseAnswer = () => throw new HttpRequestException("沒有網路");
+        await vm.CheckForUpdatesAsync(silent: false);
+        Assert.Contains("網路", Assert.Single(_services.Errors));
+    }
+
+    [Fact]
+    public async Task TheStartupCheckDoesNotInterruptAReading()
+    {
+        _services.LatestRelease = NewRelease;
+        var vm = Create();
+        vm.ScriptText = "我讀書";
+        await vm.StartStopAsync();
+
+        await vm.CheckForUpdatesAsync(silent: true);
+
+        Assert.Empty(_services.UpdatesOffered);
+    }
+
     // ── 假的外部服務 ──
 
     private sealed class FakeServices : IAppServices
@@ -1033,6 +1106,36 @@ public sealed class MainViewModelTests : IDisposable
         public string? NextSavePath { get; set; }
         public bool? SaveChangesAnswer { get; set; } = false;
         public Exception? StartFailure { get; set; }
+        public string LatestRelease { set => LatestReleaseAnswer = () => value; }
+        public Func<string> LatestReleaseAnswer { get; set; } = () => throw new HttpRequestException("測試沒設定");
+        public bool UpdateAnswer { get; set; }
+        public List<(string Latest, string Current)> UpdatesOffered { get; } = [];
+        public List<string> OpenedUrls { get; } = [];
+        public List<string> Infos { get; } = [];
+
+        public string CurrentVersion => "0.10.0";
+
+        public Task<string> FetchLatestReleaseAsync()
+        {
+            try
+            {
+                return Task.FromResult(LatestReleaseAnswer());
+            }
+            catch (Exception ex)
+            {
+                return Task.FromException<string>(ex);
+            }
+        }
+
+        public bool AskOpenUpdate(string latestVersion, string currentVersion)
+        {
+            UpdatesOffered.Add((latestVersion, currentVersion));
+            return UpdateAnswer;
+        }
+
+        public void OpenUrl(string url) => OpenedUrls.Add(url);
+
+        public void ShowInfo(string message) => Infos.Add(message);
         public List<string> AskedToSave { get; } = [];
         public List<string> Errors { get; } = [];
         public List<(PromptScript Prompt, FollowMode Mode, double Speed, MicrophoneInfo? Microphone, int StartAt, SpeechLanguage Language)> Started { get; } = [];

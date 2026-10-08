@@ -70,6 +70,10 @@
                 <ComboBox ItemsSource="{Binding CaptureOptions}" SelectedValuePath="HideFromCapture" SelectedValue="{Binding HideFromCapture}"
                           DisplayMemberPath="Label" IsEnabled="{Binding IsEditable}" MinWidth="170"
                           ToolTip="看不到：錄影、截圖、Google Meet 分享畫面（含全螢幕）都看不到浮層，只有你自己看得到。&#10;錄得到：浮層跟一般視窗一樣會被錄進去，錄示範影片時用。" />
+                <!-- 檢查更新（瓦基 2026-10-08，照 Mac 版 textream-zh）：開程式時也會在背景查一次 -->
+                <Button Content="檢查更新" Command="{Binding CheckForUpdatesCommand}" Margin="20,0,8,0"
+                        ToolTip="到 GitHub 看有沒有新版；開程式時也會自動查，有新版才會跳出來問" />
+                <TextBlock Text="{Binding VersionText}" Style="{StaticResource Label}" Margin="0" />
             </StackPanel>
         </DockPanel>
 

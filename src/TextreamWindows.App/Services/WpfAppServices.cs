@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Net.Http;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
 using Microsoft.Win32;
@@ -6,6 +9,7 @@ using TextreamWindows.App.Overlay;
 using TextreamWindows.Core.Overlay;
 using TextreamWindows.Core.Session;
 using TextreamWindows.Core.Text;
+using TextreamWindows.Core.Updates;
 using TextreamWindows.Speech.Audio;
 
 namespace TextreamWindows.App.Services;
@@ -48,6 +52,42 @@ public sealed class WpfAppServices(Window owner) : IAppServices
     }
 
     public void ShowError(string message) => Show(AppDialog.Error(message));
+
+    public void ShowInfo(string message) => Show(AppDialog.Info(message));
+
+    public string CurrentVersion { get; } = CurrentAppVersion();
+
+    /// <summary>csproj 的 Version 會寫進組件的 InformationalVersion（後面可能接 +commit 雜湊，拿掉）。</summary>
+    private static string CurrentAppVersion()
+    {
+        var informational = typeof(WpfAppServices).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        return informational?.Split('+')[0] ?? "0.0.0";
+    }
+
+    private static readonly HttpClient Http = CreateHttpClient();
+
+    private static HttpClient CreateHttpClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("TextreamWindows/" + CurrentAppVersion()); // GitHub API 沒有 User-Agent 會拒絕
+        return client;
+    }
+
+    public async Task<string> FetchLatestReleaseAsync()
+    {
+        using var response = await Http.GetAsync(UpdateCheck.LatestReleaseApi);
+        return await response.Content.ReadAsStringAsync(); // 404（還沒有 Release）也回內容，交給 UpdateCheck 判斷讀不懂
+    }
+
+    public bool AskOpenUpdate(string latestVersion, string currentVersion)
+    {
+        var dialog = AppDialog.UpdateAvailable(latestVersion, currentVersion);
+        Show(dialog);
+        return dialog.SaveChoice == true;
+    }
+
+    public void OpenUrl(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 
     /// <summary>主視窗看得到時掛在它上面置中；主視窗收起來時（浮層模式）就單獨置中在螢幕上。</summary>
     private void Show(Window dialog)

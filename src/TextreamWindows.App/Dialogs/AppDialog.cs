@@ -83,13 +83,24 @@ public sealed class AppDialog : Window
     /// <summary>顯示的訊息（測試用）。</summary>
     public string Message { get; }
 
-    /// <summary>「要先存起來嗎？」的答案：true 儲存、false 不儲存、null 取消（含按 Esc、關掉視窗）。</summary>
+    /// <summary>「要先存起來嗎？」的答案：true 儲存、false 不儲存、null 取消（含按 Esc、關掉視窗）；「有新版」的答案：true 前往下載。</summary>
     public bool? SaveChoice => _answered ? _picked : null;
 
     public static AppDialog SaveChanges(string displayName) => new(
         "Textream for Windows",
         $"「{displayName.TrimEnd('*')}」有還沒存的修改，要先存起來嗎？",
         [new("儲存", true, IsPrimary: true, IsCancel: false), new("不儲存", false, false, false), new("取消", null, false, IsCancel: true)]);
+
+    /// <summary>有新版（照 Mac 版 textream-zh）：前往下載開 GitHub 的發佈頁。</summary>
+    public static AppDialog UpdateAvailable(string latestVersion, string currentVersion) => new(
+        "Textream for Windows",
+        $"有新版：Textream for Windows {latestVersion}\n\n你目前是 {currentVersion}。到發佈頁面下載新的 zip，解壓縮後取代舊的資料夾就能更新（設定與講稿不會不見）。",
+        [new("前往下載", true, IsPrimary: true, IsCancel: false), new("稍後", false, false, IsCancel: true)]);
+
+    public static AppDialog Info(string message) => new(
+        "Textream for Windows",
+        message,
+        [new("好", null, IsPrimary: true, IsCancel: true)]);
 
     public static AppDialog Error(string message) => new(
         "Textream for Windows",

@@ -100,6 +100,12 @@ public partial class MainWindow : Window
         // 優先順序一定要比 Render 低：2026-10-08 第一版用 Render，每 50 毫秒插隊，WPF 畫不了畫面，瓦基開起來整片白
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Background, (_, _) => _viewModel.Tick(), Dispatcher);
 
+        // 檢查更新（照 Mac 版 textream-zh）：畫面出來後在背景查一次，沒新版不出聲；開發存圖時不查
+        if (Environment.GetEnvironmentVariable("TEXTREAM_SNAPSHOT") is null)
+        {
+            ContentRendered += (_, _) => _ = _viewModel.CheckForUpdatesAsync(silent: true);
+        }
+
         // 開發用：TEXTREAM_SNAPSHOT=<檔名.png> 時，畫面畫好就把自己存成圖片再關掉，讓 AI 不靠螢幕截圖也看得到介面
         if (Environment.GetEnvironmentVariable("TEXTREAM_SNAPSHOT") is { Length: > 0 } snapshot)
         {

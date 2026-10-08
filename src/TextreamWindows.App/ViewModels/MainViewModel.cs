@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using TextreamWindows.App.Mvvm;
 using TextreamWindows.App.Services;
 using TextreamWindows.Core.Documents;
@@ -7,6 +8,7 @@ using TextreamWindows.Core.Overlay;
 using TextreamWindows.Core.Session;
 using TextreamWindows.Core.Settings;
 using TextreamWindows.Core.Text;
+using TextreamWindows.Core.Updates;
 using TextreamWindows.Speech.Audio;
 
 namespace TextreamWindows.App.ViewModels;
@@ -78,6 +80,7 @@ public sealed class MainViewModel : ObservableObject
         SaveAsCommand = new RelayCommand(() => SaveAs(), () => IsEditable);
         StartStopCommand = new RelayCommand(() => _ = StartStopAsync(), () => !_isStarting && (IsRunning || !string.IsNullOrWhiteSpace(ScriptText)));
         StartFromTopCommand = new RelayCommand(() => CaretIndex = 0, () => IsEditable && StartPoint(new PromptScript(ScriptText)) > 0);
+        CheckForUpdatesCommand = new RelayCommand(() => _ = CheckForUpdatesAsync(silent: false), () => IsEditable);
 
         Microphones = services.ListMicrophones().Select(m => new MicrophoneOption(m)).ToList();
         var settings = AppSettings.Load(settingsPath);
@@ -326,6 +329,56 @@ public sealed class MainViewModel : ObservableObject
 
     /// <summary>選螢幕只對全螢幕有用。</summary>
     public bool IsDisplayChoiceEnabled => OverlayStyle == OverlayStyle.FullScreen && IsEditable;
+
+    // ── 檢查更新 ──
+
+    /// <summary>右上角「檢查更新」旁邊的版本號。</summary>
+    public string VersionText => "v" + _services.CurrentVersion;
+
+    public RelayCommand CheckForUpdatesCommand { get; }
+
+    /// <summary>
+    /// 檢查更新（瓦基 2026-10-08，照 Mac 版 textream-zh）：查 GitHub 最新 Release，有新版就問要不要去下載頁。
+    /// <paramref name="silent"/>：開程式時在背景查，沒新版、沒網路、讀不懂都不出聲，正在跟讀時也不打擾。
+    /// 按「檢查更新」時每種結果都告訴使用者。
+    /// </summary>
+    public async Task CheckForUpdatesAsync(bool silent)
+    {
+        string json;
+        try
+        {
+            json = await _services.FetchLatestReleaseAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        {
+            if (!silent)
+            {
+                _services.ShowError($"無法檢查更新，請確認網路連線。\n{ex.Message}");
+            }
+            return;
+        }
+
+        var result = UpdateCheck.Evaluate(_services.CurrentVersion, json);
+        switch (result.Status)
+        {
+            case UpdateStatus.UpdateAvailable:
+                if (silent && (IsRunning || _isStarting || _showingDone))
+                {
+                    return;
+                }
+                if (_services.AskOpenUpdate(result.LatestVersion!, _services.CurrentVersion))
+                {
+                    _services.OpenUrl(result.ReleaseUrl!);
+                }
+                break;
+            case UpdateStatus.UpToDate when !silent:
+                _services.ShowInfo($"Textream for Windows {_services.CurrentVersion} 是目前最新的版本。");
+                break;
+            case UpdateStatus.Unreadable when !silent:
+                _services.ShowError("讀不到發佈資訊，請稍後再試。");
+                break;
+        }
+    }
 
     // ── 開始／停止 ──
 
@@ -681,6 +734,7 @@ public sealed class MainViewModel : ObservableObject
         OpenCommand.Refresh();
         SaveCommand.Refresh();
         SaveAsCommand.Refresh();
+        CheckForUpdatesCommand.Refresh();
         StartFromTopCommand.Refresh();
     }
 

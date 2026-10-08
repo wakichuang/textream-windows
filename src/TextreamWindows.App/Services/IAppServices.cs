@@ -27,6 +27,20 @@ public interface IAppServices
     /// </summary>
     Task<IFollowRunner> StartFollowAsync(PromptScript prompt, FollowMode mode, double scrollSpeed, MicrophoneInfo? microphone, int startAt, SpeechLanguage language);
 
+    /// <summary>這個程式的版本（csproj 的 Version）。</summary>
+    string CurrentVersion { get; }
+
+    /// <summary>向 GitHub 要最新 Release 的資訊（UpdateCheck.LatestReleaseApi 的回應內容）。連不上丟例外。</summary>
+    Task<string> FetchLatestReleaseAsync();
+
+    /// <summary>「有新版，要前往下載嗎？」：true 前往下載、false 稍後。</summary>
+    bool AskOpenUpdate(string latestVersion, string currentVersion);
+
+    /// <summary>用預設瀏覽器開網頁。</summary>
+    void OpenUrl(string url);
+
+    void ShowInfo(string message);
+
     /// <summary>目前接著的螢幕（DIP）。</summary>
     IReadOnlyList<DisplayInfo> ListDisplays();
 
