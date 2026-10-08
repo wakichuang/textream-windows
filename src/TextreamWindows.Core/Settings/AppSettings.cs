@@ -25,6 +25,9 @@ public sealed class AppSettings
 
     public FollowMode Mode { get; set; } = FollowMode.WordTracking;
 
+    /// <summary>講稿念的是哪種語言（瓦基 2026-10-08），逐字追蹤照它選比對規則；模型不變。</summary>
+    public SpeechLanguage SpeechLanguage { get; set; }
+
     /// <summary>麥克風的裝置 ID（MicrophoneInfo.Id）；null 用 Windows 預設的錄音裝置。</summary>
     public string? MicrophoneId { get; set; }
 

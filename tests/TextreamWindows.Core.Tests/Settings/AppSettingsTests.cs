@@ -43,6 +43,20 @@ public sealed class AppSettingsTests : IDisposable
         Assert.False(AppSettings.Load(path).HideFromCapture);
     }
 
+    [Fact]
+    public void SpeechLanguageDefaultsToTraditionalChineseAndIsSavedByName()
+    {
+        // 瓦基 2026-10-08：編輯介面切換辨識語言（繁體中文／English），要記在設定檔
+        Assert.Equal(SpeechLanguage.TraditionalChinese, AppSettings.Load(PathOf("沒有這個檔.json")).SpeechLanguage);
+        Assert.Equal(SpeechLanguage.TraditionalChinese, AppSettings.Load(WriteJson("old.json", "{\"mode\": \"Classic\"}")).SpeechLanguage); // 舊設定檔沒有這欄
+
+        var path = PathOf("english.json");
+        new AppSettings { SpeechLanguage = SpeechLanguage.English }.Save(path);
+
+        Assert.Contains("\"speechLanguage\": \"English\"", File.ReadAllText(path));
+        Assert.Equal(SpeechLanguage.English, AppSettings.Load(path).SpeechLanguage);
+    }
+
     private string WriteJson(string name, string json)
     {
         var path = PathOf(name);
