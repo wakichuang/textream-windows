@@ -7,4 +7,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
+  <!-- 每次 dotnet test 都把完整結果存成 TestResults/<測試專案>.trx（已在 .gitignore）。
+       2026-10-08 全方案跑出一個偶發失敗，終端機輸出被截斷、查不到是哪個測試；之後再發生就看這份。 -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <VSTestLogger>trx%3BLogFileName=$(MSBuildProjectName).trx</VSTestLogger>
+    <VSTestResultsDirectory>$(MSBuildThisFileDirectory)TestResults</VSTestResultsDirectory>
+  </PropertyGroup>
 </Project>

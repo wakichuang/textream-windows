@@ -29,7 +29,7 @@ textream-windows/
 
 1. **TDD**：先寫測試、跑 `dotnet test` 看它因為對的理由失敗（不是編譯錯誤），再寫剛好讓它通過的程式，最後整理。一個紅綠循環 commit 一次，commit 訊息寫清楚加了哪條規格。
 2. **不准為了讓測試通過而改測試的預期值。** 真的是預期值寫錯（或規格改了），要在 commit 訊息講清楚為什麼改。
-3. **commit 前 `dotnet test TextreamWindows.slnx` 要全綠。** 建置設定是警告即錯誤（`Directory.Build.props`），不要用 `#pragma` 或改設定把警告壓掉。
+3. **commit 前 `dotnet test TextreamWindows.slnx` 要全綠。** 建置設定是警告即錯誤（`Directory.Build.props`），不要用 `#pragma` 或改設定把警告壓掉。每次跑完，完整結果會存在 `TestResults/<測試專案>.trx`；遇到偶發失敗、終端機輸出又被截斷時，先看這份找出是哪個測試。
 4. **`TextreamWindows.Core` 不准引用任何 Windows 專屬 API 或 NuGet 套件**，它要能在 CI 與任何平台上單獨測。
 5. **字數一律用文字元素（grapheme）計算**，不要用 `string.Length`。Swift 的 `Character` 天生是文字元素，照抄 Textream 的索引會在 emoji 與罕用字錯位。
 6. 套件版本集中鎖定（`Directory.Packages.props`），升級 sherpa-onnx 時要跑完整測試（含黃金錄音回放）。
