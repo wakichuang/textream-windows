@@ -1,4 +1,5 @@
 using TextreamWindows.Core.Chinese;
+using TextreamWindows.Core.Session;
 using TextreamWindows.Core.Text;
 
 namespace TextreamWindows.Core.Alignment;
@@ -36,9 +37,10 @@ public sealed class PromptMatcher
     private readonly List<Slot> _slots;
     private readonly List<int> _recentMatchPositions = new(4);
 
-    public PromptMatcher(PromptScript source, int startingAt = 0, PinyinTable? pinyin = null)
+    public PromptMatcher(PromptScript source, int startingAt = 0, PinyinTable? pinyin = null, SpeechLanguage language = SpeechLanguage.TraditionalChinese)
     {
         Source = source;
+        Language = language;
         _pinyin = pinyin ?? PinyinTable.Default;
         _units = MatchUnit.FromScript(source, _pinyin);
         _slots = _units
@@ -53,6 +55,9 @@ public sealed class PromptMatcher
     }
 
     public PromptScript Source { get; }
+
+    /// <summary>比對規則用哪一套（瓦基 2026-10-08）。繁體中文是原本的規則；English 給純英文講稿用。</summary>
+    public SpeechLanguage Language { get; }
 
     /// <summary>讀到第幾個文字元素（高亮的位置）。只會變大。</summary>
     public int RecognizedCharacterCount { get; private set; }
@@ -72,12 +77,12 @@ public sealed class PromptMatcher
 
         var firstSlot = _slots.FindIndex(s => s.Start >= MatchStartOffset);
         var characterResult = Progress(
-            Scan(_slots, firstSlot, spokenCharacters, s => s.IsSkip, (s, p) => CharactersMatch(s.Character, p), s => s.Character.IsHan ? 2 : 3),
+            Scan(_slots, firstSlot, spokenCharacters, s => s.IsSkip, (s, p) => CharactersMatch(s.Character, p), s => s.Character.IsHan ? 2 : 3, AcceptsRunAtScriptEnd),
             firstSlot, _slots.Count, i => _slots[i].Start);
 
         var firstUnit = _units.FindIndex(u => u.Source.Start >= MatchStartOffset);
         var wordResult = Progress(
-            Scan(_units, firstUnit, spokenUnits, u => u.IsAnnotation, UnitsMatch, _ => 2),
+            Scan(_units, firstUnit, spokenUnits, u => u.IsAnnotation, UnitsMatch, _ => 2, AcceptsRunAtScriptEnd),
             firstUnit, _units.Count, i => _units[i].Source.Start);
 
         var best = SpeechTextAlignment.BestOffset(characterResult, wordResult);
@@ -202,6 +207,7 @@ public sealed class PromptMatcher
     /// 原稿確定讀到哪一格（不含）。一句話開頭第一個單位就對上講稿下一格，直接算數（照稿念的常態）；
     /// 其餘要連續直接對上 <paramref name="runNeeded"/> 個單位才算數，跳過或丟掉單位都會讓連續中斷。
     /// 這是防拖走：插話裡零星的同音字會對上講稿，但很少連著對上。
+    /// <paramref name="acceptRunAtScriptEnd"/> 時，還沒連續到的那串若已經對到講稿最後一格，也算數：後面沒有字可以再連下去了。
     /// </returns>
     private static int Scan<TSource, TSpoken>(
         IReadOnlyList<TSource> source,
@@ -209,7 +215,8 @@ public sealed class PromptMatcher
         IReadOnlyList<TSpoken> spoken,
         Func<TSource, bool> isSkip,
         Func<TSource, TSpoken, bool> matches,
-        Func<TSource, int> runNeeded)
+        Func<TSource, int> runNeeded,
+        bool acceptRunAtScriptEnd = false)
     {
         if (first < 0)
         {
@@ -219,6 +226,7 @@ public sealed class PromptMatcher
         var pi = 0;
         var confirmedEnd = first;
         var tentative = false; // confirmedEnd 之後有對上、但還沒連續到算數的格子
+        var tentativeEnd = first;
         var run = 0;
         var atStart = true; // 還沒對上任何單位，也還沒跳過或丟掉任何單位
         while (si < source.Count && pi < spoken.Count)
@@ -243,6 +251,7 @@ public sealed class PromptMatcher
                 else
                 {
                     tentative = true;
+                    tentativeEnd = si + 1;
                 }
                 atStart = false;
                 si++;
@@ -282,6 +291,11 @@ public sealed class PromptMatcher
             }
         }
 
+        if (tentative && acceptRunAtScriptEnd && Enumerable.Range(tentativeEnd, source.Count - tentativeEnd).All(i => isSkip(source[i])))
+        {
+            confirmedEnd = tentativeEnd;
+            tentative = false;
+        }
         if (!tentative)
         {
             while (confirmedEnd < source.Count && isSkip(source[confirmedEnd]))
@@ -375,6 +389,12 @@ public sealed class PromptMatcher
         var position = end < count ? startOf(end) : Source.CharacterCount;
         return Math.Max(0, position - MatchStartOffset);
     }
+
+    /// <summary>
+    /// English：講稿最後幾個詞前面有一個詞沒聽清楚（「from the earth」辨識成「FROM THIS EARTH」）時，最後一個詞照樣算數，否則永遠到不了「讀完了」。
+    /// 2026-10-08 實測 15 位朗讀者有 14 位卡在這裡。繁體中文維持原本的規則。
+    /// </summary>
+    private bool AcceptsRunAtScriptEnd => Language == SpeechLanguage.English;
 
     private static bool UnitsMatch(MatchUnit source, MatchUnit spoken) =>
         source.Kind == spoken.Kind && source.Kind switch
