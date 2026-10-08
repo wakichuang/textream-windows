@@ -22,3 +22,9 @@ golden.local
 
 # Claude Code 本機設定（預覽網頁用的 launch.json）
 /.claude/
+
+# 金鑰與憑證（本專案不用，預防誤放）
+.env
+*.env
+*.pem
+*.key

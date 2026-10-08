@@ -1,7 +1,7 @@
 # AGENTS.md：Textream for Windows（語音追蹤提詞機）
 
 > 給 AI 協作者（Codex、Claude Code 等）與想動手改程式的人看的開發規則。Claude Code 由同資料夾的 `CLAUDE.md` 用一行 `@AGENTS.md` 匯入。
-> 維護者本人的計畫書與進度表不在這個 repo；維護者的 AI 協作者開工前另外讀 `~/waki-ai-agent/100_Todo/projects/2026-10-06_Textream-for-Windows.md`。
+> 維護者本人的計畫書與進度表放在私人工作區，不在這個 repo。
 
 ## 一句話
 
