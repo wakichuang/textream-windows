@@ -21,6 +21,7 @@ public sealed class SpeechEngine : ISpeechEngine
     private readonly Task _worker;
     private string _lastText = "";
     private double _heard;
+    private volatile bool _disposing;
 
     public SpeechEngine(SpeechModel model, int numThreads = 2)
     {
@@ -52,12 +53,16 @@ public sealed class SpeechEngine : ISpeechEngine
     {
         foreach (var chunk in _queue.GetConsumingEnumerable())
         {
+            if (_disposing)
+            {
+                return; // 要釋放了：佇列裡沒解碼的音訊直接丟掉，不收尾
+            }
             _stream.AcceptWaveform(AudioFile.SampleRate, chunk.Samples);
             _heard = chunk.End;
             DecodeAvailable();
         }
 
-        if (_heard > 0)
+        if (_heard > 0 && !_disposing)
         {
             var padding = new float[(int)(AudioFile.SampleRate * TailPaddingSeconds)];
             _stream.AcceptWaveform(AudioFile.SampleRate, padding);
@@ -96,10 +101,15 @@ public sealed class SpeechEngine : ISpeechEngine
         }
     }
 
+    /// <summary>
+    /// 先叫解碼執行緒丟掉沒解碼的音訊，等它真的停了才釋放原生物件。
+    /// 原本最多等 5 秒就釋放，佇列還很長（電腦正忙）時解碼執行緒會用到已釋放的物件，整個程式當掉（2026-10-08 測試主機 Fatal error）。
+    /// </summary>
     public void Dispose()
     {
+        _disposing = true;
         _queue.CompleteAdding();
-        _worker.Wait(TimeSpan.FromSeconds(5));
+        _worker.Wait(); // 最多再解碼一批（50 毫秒的音訊）
         _stream.Dispose();
         _recognizer.Dispose();
         _queue.Dispose();

@@ -78,6 +78,31 @@ public class SpeechEngineTests
         Assert.True(clock.ElapsedMilliseconds < 200, $"送 10 秒音訊花了 {clock.ElapsedMilliseconds} 毫秒");
     }
 
+    /// <summary>
+    /// 佇列裡還有一大段沒解碼的音訊就 Dispose（例如按停止時電腦正忙）：原本最多等解碼執行緒 5 秒就釋放原生物件，
+    /// 解碼執行緒還在用就會當機（2026-10-08 測試主機三次 Fatal error，CPU 被其他測試佔滿時重現）。
+    /// 要丟掉沒解碼的音訊、等解碼執行緒真的停了才釋放，而且很快回來。
+    /// </summary>
+    [RequiresModelFact]
+    public void DisposeWithABacklogStopsTheDecoderBeforeFreeingIt()
+    {
+        var engine = new SpeechEngine(TestModels.DefaultModel!);
+        var samples = AudioFile.Load16kMono(TestModels.SampleWav("0.wav"));
+        for (var round = 0; round < 30; round++) // 約 5 分鐘的音訊，全速解碼也要 20 秒以上
+        {
+            for (var offset = 0; offset < samples.Length; offset += 800)
+            {
+                engine.Accept(new AudioChunk(samples.AsSpan(offset, Math.Min(800, samples.Length - offset)).ToArray(), offset / 16000.0));
+            }
+        }
+        var clock = Stopwatch.StartNew();
+
+        engine.Dispose();
+
+        Assert.True(engine.Completion.IsCompleted, "Dispose 回來時解碼執行緒還在跑，原生物件卻已經釋放了");
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), $"Dispose 花了 {clock.Elapsed.TotalSeconds:F1} 秒");
+    }
+
     [RequiresModelFact]
     public async Task CompletingWithoutAudioRaisesNothing()
     {
