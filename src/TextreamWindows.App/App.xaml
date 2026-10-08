@@ -1,0 +1,17 @@
+<Application x:Class="TextreamWindows.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:TextreamWindows.App"
+             StartupUri="MainWindow.xaml">
+    <!--
+      Fluent 主題用資源字典套（2026-10-08 起）：原本是 ThemeMode="System"，但要讓使用者切換淺色／深色，
+      程式裡設 ThemeMode 會用到實驗性 API（WPF0001，專案不壓警告）。先放淺色，主視窗建好時 ThemeService 換成該用的那份。
+    -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Light.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

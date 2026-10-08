@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TextreamWindows.Core\TextreamWindows.Core.csproj" />
+    <ProjectReference Include="..\TextreamWindows.Speech\TextreamWindows.Speech.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- 執行檔叫 TextreamWindows.exe（畫面上的名稱是 Textream for Windows，2026-10-08 瓦基定） -->
+    <AssemblyName>TextreamWindows</AssemblyName>
+    <!-- 免安裝版的版本號，也用在 zip 檔名（scripts/publish.py）。第一次公開前的預覽版 -->
+    <Version>0.9.0</Version>
+    <!-- 程式圖示：Textream 原版圖示＋右下角四格視窗徽章（scripts/make_icon.py 產生，2026-10-08 瓦基要求） -->
+    <ApplicationIcon>Assets/textream-windows.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets/textream-windows.png" />
+    <!-- 同一張圖再內嵌一份給程式碼讀（AppIcon），不靠 pack 路徑，測試裡也拿得到 -->
+    <EmbeddedResource Include="Assets/textream-windows.png" LogicalName="TextreamWindows.AppIcon.png" />
+  </ItemGroup>
+
+</Project>

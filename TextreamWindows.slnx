@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TextreamWindows.App/TextreamWindows.App.csproj" />
+    <Project Path="src/TextreamWindows.Core/TextreamWindows.Core.csproj" />
+    <Project Path="src/TextreamWindows.Lab/TextreamWindows.Lab.csproj" />
+    <Project Path="src/TextreamWindows.Speech/TextreamWindows.Speech.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TextreamWindows.Core.Tests/TextreamWindows.Core.Tests.csproj" />
+    <Project Path="tests/TextreamWindows.Desktop.Tests/TextreamWindows.Desktop.Tests.csproj" />
+    <Project Path="tests/TextreamWindows.Speech.Tests/TextreamWindows.Speech.Tests.csproj" />
+  </Folder>
+</Solution>

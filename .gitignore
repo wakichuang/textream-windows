@@ -1,0 +1,21 @@
+# 建置產出
+bin/
+obj/
+TestResults/
+*.user
+.vs/
+publish/
+
+# 模型與音檔不進 repo（模型放 %LOCALAPPDATA%\Textream\models，黃金錄音放維護者自己的資料夾）
+/models/
+/.ci-models/
+*.onnx
+*.wav
+*.tar.bz2
+
+# Python
+__pycache__/
+.venv/
+
+# 黃金錄音的位置（只在維護者電腦上，見 tests/TextreamWindows.Speech.Tests/Golden/GoldenAudio.cs）
+golden.local

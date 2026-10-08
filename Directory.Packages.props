@@ -1,0 +1,17 @@
+<Project>
+  <!-- 套件版本只在這裡寫，csproj 裡的 PackageReference 不帶 Version。升級 sherpa-onnx 時要跑完整測試。 -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup Label="語音">
+    <PackageVersion Include="NAudio.Core" Version="3.1.0" />
+    <PackageVersion Include="NAudio.Wasapi" Version="3.1.0" />
+    <PackageVersion Include="org.k2fsa.sherpa.onnx" Version="1.13.8" />
+  </ItemGroup>
+  <ItemGroup Label="測試">
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+</Project>

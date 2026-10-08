@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 拼音表正本在 repo 根目錄的 data/，由 scripts/gen_pinyin_table.py 產生；編進組件就不用在執行時找檔案 -->
+    <EmbeddedResource Include="..\..\data\pinyin\unihan-pinyin.tsv" LogicalName="TextreamWindows.Core.unihan-pinyin.tsv" />
+  </ItemGroup>
+
+</Project>

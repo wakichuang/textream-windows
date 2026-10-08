@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+      # 語音模型用快取避免每次重抓約 511 MB（計畫書第 7.1 節：模型做快取）。
+      # 路徑不能含「..」：actions/cache 會拒絕存快取（2026-10-08 第一次就沒存成），所以放在 workspace 裡、.gitignore 擋掉
+      TEXTREAM_MODELS_DIR: ${{ github.workspace }}\.ci-models
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache speech model A
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\.ci-models
+          # 模型檔是固定版本（fetch_models.py 鎖了 SHA256），換模型或改版才需要改這個 key
+          key: sherpa-onnx-model-A-zipformer-bilingual-zh-en-2023-02-20-v1
+
+      # 第 4 階段步驟 5：Speech 測試裡要模型的 6 個（含 3.wav 端對端冒煙測試）在 CI 也要跑。
+      # 已經在快取裡就會跳過下載；SHA256 對不上會失敗。黃金錄音（瓦基的聲音）不上 GitHub，那幾個測試在 CI 一律略過
+      - name: Fetch speech model A
+        run: python scripts/fetch_models.py A
+
+      - name: Build
+        run: dotnet build TextreamWindows.slnx -c Release
+
+      # Desktop.Tests 需要真的桌面，只在本機跑
+      - name: Core tests
+        run: dotnet test tests/TextreamWindows.Core.Tests -c Release --no-build
+
+      - name: Speech tests
+        run: dotnet test tests/TextreamWindows.Speech.Tests -c Release --no-build
