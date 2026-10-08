@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#下載">下載</a> · <a href="#三步驟開始用">怎麼用</a> · <a href="#介面與設定">介面與設定</a> · <a href="#檢查更新">檢查更新</a> · <a href="#注意事項">注意事項</a> · <a href="#給開發者">給開發者</a>
+  <a href="#下載">下載</a> · <a href="#三步驟開始用">怎麼用</a> · <a href="#介面與設定">介面與設定</a> · <a href="#檢查更新">檢查更新</a> · <a href="#注意事項">注意事項</a> · <a href="#給開發者">給開發者</a> · <a href="#關於作者">關於作者</a>
 </p>
 
 <p align="center">
@@ -171,10 +171,21 @@ python scripts/publish.py                 # 打包免安裝版 zip 到 publish/
 語音辨識用 [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 的串流模型 `sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20`（中英雙語，Apache-2.0）。
 `scripts/fetch_models.py --list` 可以看其他候選模型，比較準確度與延遲用 `TextreamWindows.Lab bench`。
 
+## 關於作者
+
+Textream for Windows 由[瓦基](https://readingoutpost.com/)製作。我是書評部落格《閱讀前哨站》和說書頻道《下一本讀什麼？》的創辦人，錄 Podcast、錄影片，都是看著稿子講。在 Mac 上用過 Textream 之後，我也想在 Windows 上有一套聽得懂中文、跟著聲音走的提詞機，乾脆自己動手做，順便把中文的比對加強，公開給同樣需要的人。
+
+► 想認識更多關於我？
+
+- [閱讀前哨站](https://readingoutpost.com/)：我的書評部落格，寫讀過的書和心得
+- [下一本讀什麼？](https://readingoutpost.com/podcast/)：說書 Podcast
+- [AI 瓦基第二大腦](https://readingoutpost.com/recommends/waki-ai/)：線上課程。你想讓 AI 成為工作夥伴，而不是用得越多越挫折嗎？我將一人公司的方法結合 AI 協作，設計出一套簡單好上手的 AI 課程。跟著流程走，透過十個專案包示範，帶你做出好成果。
+
+這個程式永遠免費。如果它讓你錄影時少低頭找幾次稿，**點顆星**我會很開心；但真正讓它變好的，是[回報一次追丟的狀況](https://github.com/wakichuang/textream-windows/issues/new?template=tracking-lost.md)，告訴我在哪一段高亮停住了，或跳到不對的地方。
+
 ## 授權與致謝
 
 本專案以 [MIT 授權](LICENSE) 公開，歡迎使用、修改、再分享。
 
 - 原版 [Textream](https://github.com/f/textream)：Fatih Kadir Akin 製作，原始構想來自 Semih Kışlar。本專案的比對演算法、三種模式與浮層設計都移植自它。
 - 用到的第三方程式、資料與語音模型（Textream、sherpa-onnx、ONNX Runtime、NAudio、Unicode Unihan、語音模型 A）及其授權見 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
-- Windows 版由 [瓦基（閱讀前哨站）](https://readingoutpost.com) 製作。
