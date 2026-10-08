@@ -347,6 +347,12 @@ authorization of the copyright holder.
   - 〈蓋茲堡演說〉150 週年 15 人朗讀：https://archive.org/details/gettysburgaddress_150anniv_1311_librivox
   - 〈第二次就職演說〉John Greenman 朗讀：https://archive.org/details/lincolnsinauguraladdresses_1501_librivox
 
+## 介紹網頁（`site/`，不隨程式發佈）
+
+- 版面與視覺風格參考 Textream 官方網站（https://textream.net/ ，Fatih Kadir Akin 製作），頁面頂端與頁尾都註明出處並連回原站；文字與程式碼是本專案另外撰寫，沒有複製原站的內容或原始碼（2026-10-08）
+- 字型：Noto Sans TC 與 JetBrains Mono，網頁執行時從 Google Fonts 載入，字型檔不在 repo 裡；兩者都是 **SIL Open Font License 1.1**
+- 圖示：`site/textream-windows.png` 是本專案自己的程式圖示（`src/TextreamWindows.App/Assets/`）
+
 ## 之後會加入的相依（加入時補上完整授權條文）
 
 | 名稱 | 授權 | 階段 |

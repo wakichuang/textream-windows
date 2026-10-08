@@ -19,3 +19,6 @@ __pycache__/
 
 # 黃金錄音的位置（只在維護者電腦上，見 tests/TextreamWindows.Speech.Tests/Golden/GoldenAudio.cs）
 golden.local
+
+# Claude Code 本機設定（預覽網頁用的 launch.json）
+/.claude/
