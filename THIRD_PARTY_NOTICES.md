@@ -339,6 +339,14 @@ authorization of the copyright holder.
 | B | `sherpa-onnx-streaming-paraformer-bilingual-zh-en` | 由 FunASR／ModelScope 的 Paraformer 轉換 |
 | C | `sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30` | 由 Hugging Face `yuekai/icefall-asr-multi-zh-hans-zipformer-large` 轉換 |
 
+## 英文測試資料（只在測試程式裡，不隨程式發佈）
+
+- 用途：`tests/TextreamWindows.Core.Tests/Alignment/PromptMatcherEnglishTests.cs` 的英文比對測試（2026-10-08 加入）
+- 講稿：Abraham Lincoln〈蓋茲堡演說〉（1863）與〈第二次就職演說〉（1865）的片段，**公有領域**；〈第二次就職演說〉文字取自 Yale Avalon Project（https://avalon.law.yale.edu/19th_century/lincoln2.asp）
+- 辨識結果：語音模型 A 聽 LibriVox 朗讀（https://librivox.org ，錄音聲明為**公有領域**）輸出的文字；錄音本身不在 repo 裡
+  - 〈蓋茲堡演說〉150 週年 15 人朗讀：https://archive.org/details/gettysburgaddress_150anniv_1311_librivox
+  - 〈第二次就職演說〉John Greenman 朗讀：https://archive.org/details/lincolnsinauguraladdresses_1501_librivox
+
 ## 之後會加入的相依（加入時補上完整授權條文）
 
 | 名稱 | 授權 | 階段 |
