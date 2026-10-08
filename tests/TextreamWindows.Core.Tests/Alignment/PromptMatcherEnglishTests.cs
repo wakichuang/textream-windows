@@ -98,4 +98,27 @@ public class PromptMatcherEnglishTests
             "ONE EIGHTH OF THE WHOLE POPULATION WERE COLORED SLAVES NOT DISTRIBUTED GENERALLY OVER THE UNION BUT LOCALIZED IN THE SOUTHERN PART OF IT THESE SLAVES CONSTITUTED A PECULIAR AND POWERFUL INTEREST");
         AssertReachesEnd(prompt, rejoined[^1], "EN-03");
     }
+
+    /// <summary>
+    /// 跳過一整段（約 100 個詞，這裡是〈蓋茲堡演說〉第二段）：2026-10-08 實測要念 7 個詞（約 3.7 秒）才接回。
+    /// 中文找回位置基本要連續 5 個字，英文一個詞比一個中文字長、也比較不會撞，5 個詞以內要接回。
+    /// </summary>
+    [Fact]
+    public void EN04_SkippingAParagraphRejoinsWithinFiveWords()
+    {
+        var prompt = new PromptScript(
+            "With high hope for the future, no prediction in regard to it is ventured.\n\n" +
+            "Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. " +
+            "We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. " +
+            "It is altogether fitting and proper that we should do this. But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground.\n\n" +
+            "One-eighth of the whole population were colored slaves, not distributed generally over the Union, but localized in the southern part of it.");
+        var matcher = English(prompt);
+        Feed(matcher, "WITH HIGH HOPE FOR THE FUTURE NO PREDICTION IN REGARD TO IT IS VENTURED");
+
+        var target = prompt.Text.IndexOf("One-eighth", StringComparison.Ordinal);
+        var words = "ONE EIGHTH OF THE WHOLE POPULATION WERE COLORED SLAVES NOT DISTRIBUTED GENERALLY".Split(' ');
+        var needed = Enumerable.Range(1, words.Length).FirstOrDefault(k => matcher.Match(string.Join(' ', words[..k])) > target);
+
+        Assert.True(needed is > 0 and <= 5, needed == 0 ? "EN-04：念完 12 個詞都沒接回" : $"EN-04：要念 {needed} 個詞才接回");
+    }
 }

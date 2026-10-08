@@ -380,7 +380,13 @@ public sealed class PromptMatcher
     /// 往前跳 <paramref name="distance"/> 個可讀單位，要連續對上幾個：基本 5 個，每遠 50 個多要 1 個。
     /// 原本是每 100 個多 1 個，一集看稿講的 Podcast 被「不一樣的地方」（6 個）騙去 200 字後（測試 ZH-23），2026-10-08 改陡。
     /// </summary>
-    private static int RunNeededToJump(int distance) => AnchorBaseRun + distance / 50;
+    /// <remarks>
+    /// English：基本 4 個詞，每遠 100 個多要 1 個。一個英文詞比一個中文字長、也比較不會撞，照中文的規則跳過一段約 100 個詞要念 7 個詞（約 3.7 秒）才接回（EN-04）。
+    /// 2026-10-08 用 18 段英文朗讀重播驗證，插話期間與照稿念都沒有因此提早跳。
+    /// </remarks>
+    private int RunNeededToJump(int distance) => Language == SpeechLanguage.English
+        ? 4 + distance / 100
+        : AnchorBaseRun + distance / 50;
 
     /// <summary>掃到第 <paramref name="end"/> 格 → 從比對起點算前進了幾個字：停在下一格的開頭，掃完了就是講稿結尾。</summary>
     private int Progress(int end, int first, int count, Func<int, int> startOf)
