@@ -247,6 +247,12 @@ h2{font-size:clamp(28px,4vw,42px);font-weight:900;letter-spacing:-.01em;line-hei
 .box .term span{color:var(--dim)}
 .box + .box{margin-top:16px}
 .box a{color:#8fb2ff;text-decoration:underline;text-underline-offset:3px}
+.box.wide{max-width:820px}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.shots figure{margin:0}
+.shots figcaption{font-size:14.5px;color:var(--text);font-weight:700;margin-bottom:4px}
+.shots figcaption span{display:block;font-weight:400;color:var(--muted);font-size:13.5px;margin-top:2px}
+.shots img{width:100%;height:auto;border-radius:10px;border:1px solid var(--line-hi);margin-top:10px}
 
 footer{margin-top:120px;padding:40px 0 56px;border-top:1px solid var(--line);text-align:center;color:var(--dim);font-size:13.5px;line-height:2}
 footer a{color:var(--muted);text-decoration:underline;text-decoration-color:rgba(255,255,255,.2);text-underline-offset:3px}
@@ -261,6 +267,7 @@ footer .sep{margin:0 8px;color:#3a3a44}
   .arrow{flex-direction:row;padding:4px 0}
   .arrow svg{transform:rotate(90deg)}
   .steps{grid-template-columns:1fr;gap:28px}
+  .shots{grid-template-columns:1fr}
   .laptop{width:100%}
   .monitor{position:relative;width:70%;margin:28px auto 0;right:auto;bottom:auto}
 }
@@ -521,10 +528,19 @@ footer .sep{margin:0 8px;color:#3a3a44}
     </div>
     <p class="req">Windows 10（2004 版以後）或 Windows 11・64 位元・約 380 MB，已內含語音模型</p>
 
-    <div class="box">
-      <h3>第一次打開，跳出藍色的「Windows 已保護您的電腦」？</h3>
-      <p>這是個人免費分享的程式，沒有購買程式碼簽章憑證，Windows SmartScreen 會提醒一次。照下面點一次，之後就不會再跳。</p>
-      <div class="term"><span>&gt;</span> 其他資訊 → 仍要執行</div>
+    <div class="box wide">
+      <h3>第一次打開，跳出「Windows 已保護您的電腦」？</h3>
+      <p>這不是中毒。這是個人免費分享的程式，沒有購買程式碼簽章憑證，Windows SmartScreen 會提醒一次。照下面兩步點一次，之後就不會再跳。每台電腦看到的顏色可能不一樣（藍色、紅色都有），按法都一樣。</p>
+      <div class="shots">
+        <figure>
+          <figcaption>步驟 1：按左邊的「其他資訊」<span>一開始只看得到「不要執行」，先別按它。</span></figcaption>
+          <img src="images/smartscreen-step1.png" width="534" height="499" loading="lazy" alt="Windows 已保護您的電腦：先按左邊的「其他資訊」">
+        </figure>
+        <figure>
+          <figcaption>步驟 2：按「仍要執行」<span>按完「其他資訊」，這顆按鈕才會出現。</span></figcaption>
+          <img src="images/smartscreen-step2.png" width="534" height="499" loading="lazy" alt="按下「其他資訊」後出現「仍要執行」按鈕，按它就能打開 Textream">
+        </figure>
+      </div>
     </div>
     <div class="box">
       <h3>用 Mac？</h3>
