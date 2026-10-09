@@ -414,6 +414,125 @@ public class OverlayViewTests
         Assert.Equal(down1, upFromLine3);
     }
 
+    // ── 往回滾要跟往下滾一樣順（2026-10-10，Mac 繁中版 1.7.1.4 issue #1：Mac 的講稿畫面位置會隨捲動浮動，往上跳被拉回） ──
+
+    /// <summary>瓦基實際的講稿樣子：Heptabase 文章，段落之間空一行，中間有子標題；再加一行自己一行的標註（跳過去會被推到下一段）。</summary>
+    private static readonly PromptScript Article = new(string.Join("\n\n",
+        "## 為什麼我開始寫卡片盒筆記",
+        "前陣子有朋友問我，為什麼要花這麼多時間整理筆記。我的回答很簡單：因為我想要在寫文章的時候，不必每次都從零開始。卡片盒筆記讓我把讀過的東西變成自己的話，存在一個找得回來的地方。",
+        "一開始我也只是把書裡的句子抄下來，抄了幾百張之後才發現，這些卡片幾乎沒有再被我打開過。問題不在於抄得不夠多，而是我從來沒有用自己的話重寫，也沒有把它們跟舊的卡片連在一起。",
+        "後來我改成每讀完一個段落，就問自己一個問題：這段話跟我以前想過的什麼事情有關？寫下答案，再把它掛到相關的索引底下。這個小小的改變，讓我的卡片盒開始長出自己的形狀。",
+        "## 每一張卡片只寫一個觀點",
+        "每一張卡片只寫一個觀點，而且要能獨立看懂。這句話聽起來很容易，做起來卻很難，因為我們讀書的時候，腦袋裡常常同時冒出好幾個想法，很想一口氣全部寫在同一張卡片上。",
+        "我的做法是先把所有想法都寫在草稿匣，等到隔天再回來拆。拆的時候只問一件事：如果三年後的我只看到這一張，看得懂嗎？看不懂，就代表它還需要補上脈絡，或者應該拆成兩張。",
+        "拆完之後，再替每一張卡片找到它的鄰居。有時候是同一本書的另一個觀點，有時候是完全不同領域的一段經驗。真正有趣的連結，往往出現在距離最遠的地方。",
+        "## 工具不重要，持續寫下去才重要",
+        "很多人問我該用哪一套工具，我的答案一直沒有變：用你最順手、最不會讓你分心的那一套。工具會換，但你用自己的話寫下來的觀點，會跟著你一輩子。",
+        "[停一下，看鏡頭]",
+        "最後想跟你分享的是，卡片盒筆記不是一個整理的系統，而是一個思考的夥伴。真正的思考一定要由自己完成，卡片盒只是讓這些思考有地方住、有機會被再次遇見。"));
+
+    /// <summary>瓦基的實際設定（2026-10-10 讀 settings.json）：膠囊 650×387、22 號；浮動視窗沒存過位置用預設 720×240、28 號；全螢幕 52 號。</summary>
+    public static TheoryData<OverlayStyle, double, double, double> WakiSettings => new()
+    {
+        { OverlayStyle.Capsule, 650, 387, 22 },
+        { OverlayStyle.Floating, 720, 240, 28 },
+        { OverlayStyle.FullScreen, 1920, 1080, 52 },
+    };
+
+    private readonly record struct WheelStep(int Progress, double LineTop, double Scroll)
+    {
+        public double ScreenY => LineTop - Scroll;
+
+        public override string ToString() => $"位置 {Progress}、行頂 {LineTop:0.#}、捲動 {Scroll:0.#}、畫面上 {ScreenY:0.#}";
+    }
+
+    /// <summary>從講稿後段開始照語音追蹤的流程跳：滾輪算出目標 → <see cref="PromptSession.JumpTo"/> → 高亮更新 → 排版。</summary>
+    private static List<WheelStep> Wheel(OverlayStyle style, double width, double height, double fontSize, int startWord, params int[] notches)
+    {
+        return OnSta(() =>
+        {
+            var view = new OverlayView(style, fontSize) { AnimateScroll = false };
+            view.Load(Article, FollowMode.WordTracking);
+            Layout(view, width, height);
+            var session = new PromptSession(Article, FollowMode.WordTracking);
+            session.JumpTo(Article.Words[startWord].CharacterRange.Start, 0);
+            session.Start(0);
+            var now = 0.0;
+            var steps = new List<WheelStep>();
+            void Show()
+            {
+                view.Update(new OverlayStatus(session.EffectiveCharacterCount, TimeSpan.Zero, 0, false));
+                Layout(view, width, height);
+                steps.Add(new WheelStep(session.EffectiveCharacterCount, view.CurrentLineTop ?? double.NaN, view.ScrollOffset));
+            }
+            Show();
+            foreach (var notch in notches)
+            {
+                now += 0.2;
+                session.JumpTo(view.LineJumpTarget(notch), now);
+                Show();
+            }
+            return steps;
+        });
+    }
+
+    [Theory]
+    [MemberData(nameof(WakiSettings))]
+    public void WheelingUpFiveNotchesMovesUpALineEachTimeAndTheScrollFollows(OverlayStyle style, double width, double height, double fontSize)
+    {
+        var steps = Wheel(style, width, height, fontSize, Article.Words.Count * 9 / 10, -1, -1, -1, -1, -1);
+        var trace = string.Join("\n", steps);
+
+        for (var i = 1; i < steps.Count; i++)
+        {
+            Assert.True(steps[i].Progress < steps[i - 1].Progress, $"第 {i} 格沒有往上跳：\n{trace}");
+            Assert.True(steps[i].LineTop < steps[i - 1].LineTop - 1, $"第 {i} 格目前那一行沒有往上：\n{trace}");
+            Assert.True(steps[i].Scroll <= steps[i - 1].Scroll, $"第 {i} 格自動捲動往下拉：\n{trace}");
+            Assert.True(steps[i].Scroll == 0 || Math.Abs(steps[i].ScreenY - steps[0].ScreenY) < 0.5, $"第 {i} 格目前那一行在畫面上的位置跑掉了：\n{trace}");
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(WakiSettings))]
+    public void WheelingDownFiveNotchesMovesDownALineEachTime(OverlayStyle style, double width, double height, double fontSize)
+    {
+        var steps = Wheel(style, width, height, fontSize, Article.Words.Count / 4, 1, 1, 1, 1, 1);
+        var trace = string.Join("\n", steps);
+
+        for (var i = 1; i < steps.Count; i++)
+        {
+            Assert.True(steps[i].Progress > steps[i - 1].Progress, $"第 {i} 格沒有往下跳：\n{trace}");
+            Assert.True(steps[i].LineTop > steps[i - 1].LineTop + 1, $"第 {i} 格目前那一行沒有往下：\n{trace}");
+            Assert.True(steps[i].Scroll >= steps[i - 1].Scroll, $"第 {i} 格自動捲動往上拉：\n{trace}");
+        }
+    }
+
+    /// <summary>Mac 的真因是同一個字量到的位置會隨捲動浮動；Windows 用 WPF 真的排版，同一個字在任何捲動位置都要在同一行。</summary>
+    [Theory]
+    [MemberData(nameof(WakiSettings))]
+    public void ACharacterKeepsItsLinePositionWhereverTheScriptIsScrolled(OverlayStyle style, double width, double height, double fontSize)
+    {
+        var probe = Article.Words[Article.Words.Count / 2].CharacterRange.Start;
+        var tops = OnSta(() =>
+        {
+            var view = new OverlayView(style, fontSize) { AnimateScroll = false };
+            view.Load(Article, FollowMode.WordTracking);
+            Layout(view, width, height);
+            var result = new List<(int Progress, double Scroll, double? Top)>();
+            foreach (var word in new[] { 0, Article.Words.Count / 3, Article.Words.Count / 2, Article.Words.Count - 3, Article.Words.Count / 5 })
+            {
+                var progress = Article.Words[word].CharacterRange.Start;
+                view.Update(new OverlayStatus(progress, TimeSpan.Zero, 0, false));
+                Layout(view, width, height);
+                result.Add((progress, view.ScrollOffset, view.LineTopAt(probe)));
+            }
+            return result;
+        });
+
+        Assert.All(tops, t => Assert.NotNull(t.Top));
+        Assert.True(tops.Select(t => t.Top).Distinct().Count() == 1, "同一個字的行位置隨捲動浮動：\n" + string.Join("\n", tops));
+    }
+
     [Fact]
     public void TheMeterShowsProgressInYellow()
     {

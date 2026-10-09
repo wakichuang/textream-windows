@@ -255,6 +255,36 @@ public sealed class OverlayView : Border
     /// <summary>最後一次捲動用的動作（測試看「跳越遠滑越久」）。</summary>
     public ScrollMotion? LastMotion { get; private set; }
 
+    /// <summary>講稿往上捲了多少（DIP，捲動目標；測試看捲動有沒有跟著跳轉走）。</summary>
+    public double ScrollOffset => _target;
+
+    /// <summary>目前那一行（黃色那段）的頂端，從講稿最上面算（DIP）；還沒排版回 null。</summary>
+    public double? CurrentLineTop => _display is null ? null : LineTop(CurrentRect());
+
+    /// <summary>講稿位置 <paramref name="characterOffset"/> 那個字所在那一行的頂端，從講稿最上面算（DIP）；還沒排版回 null。</summary>
+    public double? LineTopAt(int characterOffset) =>
+        _display is null ? null : LineTop(CharacterRect(_display.ToDisplayOffset(characterOffset)));
+
+    private static double? LineTop(Rect rect) => rect.IsEmpty ? null : rect.Top;
+
+    /// <summary>目前那一行從哪個字量：黃色那段的第一個字，讀完了就是後面那段的開頭。</summary>
+    private Rect CurrentRect() => CharacterRect(_current.Text.Length > 0 ? _currentStart : _currentEnd);
+
+    /// <summary>顯示文字位置 <paramref name="displayOffset"/> 那個字的框（三段 Run：讀過、黃色、還沒讀）；講稿結尾是後面那段的結尾。</summary>
+    private Rect CharacterRect(int displayOffset)
+    {
+        _text.UpdateLayout();
+        foreach (var (run, start) in new[] { (_read, 0), (_current, _currentStart), (_ahead, _currentEnd) })
+        {
+            var local = displayOffset - start;
+            if (local >= 0 && local < run.Text.Length)
+            {
+                return run.ContentStart.GetPositionAtOffset(local, LogicalDirection.Forward)!.GetCharacterRect(LogicalDirection.Forward);
+            }
+        }
+        return _ahead.ContentEnd.GetCharacterRect(LogicalDirection.Forward);
+    }
+
     public string ElapsedText => _elapsed.Text;
 
     public string StatusText => _status.Text;
@@ -348,32 +378,82 @@ public sealed class OverlayView : Border
         return _display.ToCharacterOffset(offset);
     }
 
-    /// <summary>滾輪：從目前那一行往下（正）或往上（負）數 <paramref name="lines"/> 行，那一行開頭的講稿位置。</summary>
+    /// <summary>
+    /// 滾輪：從目前那一行往下（正）或往上（負）數 <paramref name="lines"/> 行，那一行開頭的講稿位置。
+    /// 只算跳過去之後畫面上目前那一行真的換掉的行（2026-10-10 診斷紀錄抓到兩種跳不動）：
+    /// 段落之間的空行換算成下一段的開頭、只有標註的行跳過去會被推到後面，落點都還在原來那一行，往上滾到段落開頭就一格也動不了；
+    /// 行首的字是上一行延續過來的（「改｜變，」），跳到「變」之後黃色那段會往前補到上一行的「改」（<see cref="ReadingHighlight"/>），
+    /// 畫面上那一行沒動、往下一行算回來又是「變」自己，往下滾卡住；所以落點選這一行裡黃色那段也從這一行開始的第一個字。
+    /// </summary>
     public int LineJumpTarget(int lines)
     {
         if (_display is null || _prompt is null)
         {
             return 0;
         }
-        _text.UpdateLayout();
-        var anchor = _current.Text.Length > 0 ? _current.ContentStart : _ahead.ContentStart;
-        var rect = anchor.GetCharacterRect(LogicalDirection.Forward);
-        if (rect.IsEmpty)
+        var target = Math.Max(0, _shownProgress);
+        var rect = CurrentRect();
+        if (rect.IsEmpty || lines == 0)
         {
-            return Math.Max(0, _shownProgress);
+            return target;
         }
-        var y = rect.Top + rect.Height / 2 + lines * _text.LineHeight;
-        if (y < 0)
-        {
-            return 0;
-        }
+        var direction = Math.Sign(lines);
+        var lineTop = rect.Top;
+        var y = rect.Top + rect.Height / 2;
         // 不捲過最後一行：跳到結尾會被當成讀完
-        y = Math.Min(y, _text.ActualHeight - _text.LineHeight / 2);
-        if (_text.GetPositionFromPoint(new Point(0, y), snapToText: true) is not { } pointer || DisplayOffsetOf(pointer) is not { } offset)
+        var lastLine = _text.ActualHeight - _text.LineHeight / 2;
+        for (var remaining = Math.Abs(lines); remaining > 0 && y <= lastLine;)
         {
-            return Math.Max(0, _shownProgress);
+            y += direction * _text.LineHeight;
+            if (y < 0)
+            {
+                return 0;
+            }
+            if (_text.GetPositionFromPoint(new Point(0, Math.Min(y, lastLine)), snapToText: true) is not { } pointer
+                || DisplayOffsetOf(pointer) is not { } offset)
+            {
+                continue;
+            }
+            var lineStart = _display.ToCharacterOffset(offset);
+            if (LineTopAt(lineStart) is not { } top || !(direction < 0 ? top < lineTop - 0.5 : top > lineTop + 0.5))
+            {
+                continue;
+            }
+            if (FirstShownOnLine(lineStart, top) is { } shown)
+            {
+                target = shown;
+                lineTop = top;
+                remaining--;
+            }
         }
-        return _display.ToCharacterOffset(offset);
+        return target;
+    }
+
+    /// <summary>
+    /// 從 <paramref name="from"/> 往後、還在頂端 <paramref name="top"/> 這一行上，第一個跳過去之後黃色那段也從這一行開始的字；沒有回 null。
+    /// 只有標註的行（黃色那段不會停在標註上）、延續上一行的字都會被跳過。
+    /// </summary>
+    private int? FirstShownOnLine(int from, double top)
+    {
+        var words = _prompt!.Words;
+        var i = 0;
+        while (i < words.Count && words[i].CharacterRange.End <= from)
+        {
+            i++;
+        }
+        for (; i < words.Count; i++)
+        {
+            var start = Math.Max(from, words[i].CharacterRange.Start);
+            if (LineTopAt(start) is not { } wordTop || Math.Abs(wordTop - top) > 0.5)
+            {
+                return null;
+            }
+            if (LineTopAt(ReadingHighlight.Range(_prompt, _display!, start).Start) is { } shownTop && Math.Abs(shownTop - top) <= 0.5)
+            {
+                return start;
+            }
+        }
+        return null;
     }
 
     /// <summary>TextBlock 裡的位置 → 顯示文字的位置（三段 Run：讀過、黃色、還沒讀）。</summary>
@@ -425,9 +505,7 @@ public sealed class OverlayView : Border
         {
             return; // 還沒排版（剛開），下一次更新再捲
         }
-        _text.UpdateLayout();
-        var anchor = _current.Text.Length > 0 ? _current.ContentStart : _ahead.ContentStart;
-        var rect = anchor.GetCharacterRect(LogicalDirection.Forward);
+        var rect = CurrentRect();
         if (rect.IsEmpty)
         {
             return;
