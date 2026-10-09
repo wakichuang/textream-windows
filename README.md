@@ -29,7 +29,7 @@
 <table>
   <tr>
     <td>
-      <strong><a href="https://github.com/wakichuang/textream-windows/releases/latest">下載最新版 Textream for Windows</a></strong><br>
+      <strong><a href="https://github.com/wakichuang/textream-windows/releases/latest">下載 Windows 版（.zip）</a></strong><br>
       免安裝版 zip，約 380 MB，已內含語音模型，不用另外下載任何東西。<br>
       Windows 10（2004 版以後）或 Windows 11，64 位元，一支麥克風。不用另外安裝 .NET。
     </td>
