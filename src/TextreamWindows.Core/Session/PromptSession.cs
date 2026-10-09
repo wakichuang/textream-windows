@@ -19,8 +19,12 @@ public sealed class PromptSession
     /// <summary>計時器兩次 Tick 之間最多算幾秒：電腦卡頓時不要一次暴衝。</summary>
     private const double MaxTickSeconds = 0.25;
 
-    /// <summary>跳轉後幾秒內的辨識結果不理：那是跳轉前就講出口、引擎還沒吐完的字。</summary>
-    private const double IgnoreTranscriptsAfterJumpSeconds = 0.3;
+    /// <summary>
+    /// 就定位時間：最後一次跳轉（點字、滾輪）之後這麼多秒內的辨識結果不比對，而且當成已經講過（重新定錨）。
+    /// 那是跳轉前就講出口、引擎還沒吐完的字，或邊滾邊講的話；只是不理的話，同一句後面的部分結果還會把它們帶回來。
+    /// 原版只不理 0.3 秒；2026-10-10 照 Mac 繁中版 1.7.1.4 改成 1 秒＋重新定錨（sherpa-onnx 首字延遲最多約 0.8 秒）。
+    /// </summary>
+    private const double JumpSettleSeconds = 1.0;
 
     /// <summary>剪掉跳轉前講過的字時，最多保留多少舊字（原版的 24）：辨識引擎可能改寫了前面的字，共同前綴算短了也不至於留太多。</summary>
     private const int AnchorPrefixAllowance = 24;
@@ -167,8 +171,10 @@ public sealed class PromptSession
             _lastSpokenText = transcript; // 暫停中不比對，但記下來：繼續時要剪掉（Resume）
             return;
         }
-        if (now - _lastJumpAt <= IgnoreTranscriptsAfterJumpSeconds)
+        if (now - _lastJumpAt <= JumpSettleSeconds)
         {
+            _spokenAnchorPrefix = transcript;
+            _lastSpokenText = transcript;
             return;
         }
         _lastSpokenText = transcript;

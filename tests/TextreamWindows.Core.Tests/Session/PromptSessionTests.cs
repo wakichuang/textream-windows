@@ -234,14 +234,14 @@ public class PromptSessionTests
         Assert.True(session.EffectiveCharacterCount > 0);
 
         session.JumpTo(0, 1.0);
-        session.ProcessTranscript("第一句话在这里嗯", 1.5); // 同一句還沒結束，只多了一個「嗯」
+        session.ProcessTranscript("第一句话在这里嗯", 2.5); // 就定位時間（1 秒）過後，同一句還沒結束，只多了一個「嗯」
 
         Assert.Equal(0, session.EffectiveCharacterCount);
     }
 
     /// <summary>
     /// 暫停後繼續時，新的音訊來源時鐘從 0 重新算（第 4.1 步 FollowPipeline）。
-    /// 舊時鐘第 50 秒的跳轉，不能讓新時鐘的辨識結果全部落在「跳轉後 0.3 秒內」而被永遠忽略。
+    /// 舊時鐘第 50 秒的跳轉，不能讓新時鐘的辨識結果全部落在「跳轉後 1 秒內」而被永遠忽略。
     /// </summary>
     [Fact]
     public void StartingAgainBeginsANewClock()
@@ -261,7 +261,8 @@ public class PromptSessionTests
     [Fact]
     public void JumpInWordTrackingIgnoresTheRestOfTheOldUtterance()
     {
-        // 原版 SpeechFollower.jump：跳轉後 0.3 秒內的辨識結果不理；同一句裡跳轉前已經講過的字要剪掉，從跳轉點重新比
+        // 原版 SpeechFollower.jump：跳轉後 0.3 秒內的辨識結果不理；同一句裡跳轉前已經講過的字要剪掉，從跳轉點重新比。
+        // 2026-10-10 起就定位時間是 1 秒，期間的結果當成已經講過（Mac 繁中版 1.7.1.4），所以第二筆移到 2.5 秒
         var prompt = new PromptScript("第一句話在這裡。中間有一段不念。第二句話在那裡。");
         var session = new PromptSession(prompt, FollowMode.WordTracking);
         session.Start(0);
@@ -273,10 +274,10 @@ public class PromptSessionTests
         session.JumpTo(target, 1.0);
         Assert.Equal(target, session.EffectiveCharacterCount);
 
-        session.ProcessTranscript("第一句话在这里中间有一段不念第二句话在那里", 1.1); // 0.3 秒內：不理
+        session.ProcessTranscript("第一句话在这里中间有一段不念第二句话在那里", 1.1); // 就定位時間內：不比對
         Assert.Equal(target, session.EffectiveCharacterCount);
 
-        session.ProcessTranscript("第一句话第二句话在那里", 1.5); // 剪掉跳轉前講過的「第一句话」，剩下的從跳轉點比
+        session.ProcessTranscript("第一句话第二句话在那里", 2.5); // 剪掉跳轉前講過的「第一句话」，剩下的從跳轉點比
         Assert.Equal(prompt.CharacterCount, session.EffectiveCharacterCount);
     }
 

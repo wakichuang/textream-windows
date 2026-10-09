@@ -32,10 +32,20 @@ public sealed class PromptMatcher
     /// <summary>找回位置：那一串要結束在辨識結果的最後幾個單位內，才代表「現在正在念這裡」。部分結果的最後一兩個字常常還會改。</summary>
     private const int AnchorTailSlack = 2;
 
+    /// <summary>往回跳之後，在新位置往後念到這麼多個可讀單位（中文字、英文詞），才恢復找回位置（Mac 繁中版 1.7.1.4 的 holdReleaseUnits）。</summary>
+    private const int HoldReleaseUnits = 3;
+
     private readonly PinyinTable _pinyin;
     private readonly List<MatchUnit> _units;
     private readonly List<Slot> _slots;
     private readonly List<int> _recentMatchPositions = new(4);
+
+    /// <summary>
+    /// 往回跳之後先不找回位置（2026-10-10 移植 Mac 繁中版 1.7.1.4，wakichuang/textream-zh issue #1）：
+    /// 跳轉當下還沒講完的那句、辨識引擎改寫的尾巴、停一下又接著講的原本後面的話，都會在後面找到對得上的地方，把高亮拉回原處。
+    /// 講者在新位置往後念到 <see cref="HoldReleaseUnits"/> 個可讀單位才解除；停頓（<see cref="RestartFromCurrentProgress"/>）不算數。
+    /// </summary>
+    private bool _holdAnchor;
 
     public PromptMatcher(PromptScript source, int startingAt = 0, PinyinTable? pinyin = null, SpeechLanguage language = SpeechLanguage.TraditionalChinese)
     {
@@ -103,10 +113,14 @@ public sealed class PromptMatcher
             if (SpeechTextAlignment.ShouldCommit(characterResult, wordResult, RecognizedCharacterCount, rawCandidate, candidate, confirmed))
             {
                 RecognizedCharacterCount = candidate;
+                if (_holdAnchor && ReadableUnitsBetween(MatchStartOffset, candidate) >= HoldReleaseUnits)
+                {
+                    _holdAnchor = false;
+                }
             }
         }
 
-        if (FindAnchor(firstUnit, spokenUnits) is { } anchor && anchor > RecognizedCharacterCount)
+        if (!_holdAnchor && FindAnchor(firstUnit, spokenUnits) is { } anchor && anchor > RecognizedCharacterCount)
         {
             RecognizedCharacterCount = anchor;
             _recentMatchPositions.Clear();
@@ -117,17 +131,19 @@ public sealed class PromptMatcher
     /// <summary>
     /// 使用者點字、滾輪追趕時跳到指定位置（可以往回），跳過標註，並從那裡重新比。
     /// 這是唯一會讓 <see cref="RecognizedCharacterCount"/> 變小的路。對應原版 <c>jump(to:)</c>。
+    /// 往回跳（或原本就在暫停中）時暫停找回位置，見 <see cref="_holdAnchor"/>；往後跳照舊。
     /// </summary>
     public int Jump(int offset)
     {
         var target = SpeechTextAlignment.AdvancePastAnnotations(Source, Math.Clamp(offset, 0, Source.CharacterCount));
+        _holdAnchor = _holdAnchor || target < RecognizedCharacterCount;
         RecognizedCharacterCount = target;
         MatchStartOffset = target;
         _recentMatchPositions.Clear();
         return target;
     }
 
-    /// <summary>一句講完、辨識結果要清空重來時呼叫：下一句從目前讀到的位置開始比。</summary>
+    /// <summary>一句講完、辨識結果要清空重來時呼叫：下一句從目前讀到的位置開始比。不解除往回跳之後的暫停（停頓不算在新位置念過）。</summary>
     public void RestartFromCurrentProgress()
     {
         MatchStartOffset = RecognizedCharacterCount;
@@ -387,6 +403,10 @@ public sealed class PromptMatcher
     private int RunNeededToJump(int distance) => Language == SpeechLanguage.English
         ? 4 + distance / 100
         : AnchorBaseRun + distance / 50;
+
+    /// <summary>講稿 <paramref name="from"/>～<paramref name="to"/>（不含）之間有幾個可讀單位（不算標註）。</summary>
+    private int ReadableUnitsBetween(int from, int to) =>
+        _units.Count(u => !u.IsAnnotation && u.Source.Start >= from && u.Source.Start < to);
 
     /// <summary>掃到第 <paramref name="end"/> 格 → 從比對起點算前進了幾個字：停在下一格的開頭，掃完了就是講稿結尾。</summary>
     private int Progress(int end, int first, int count, Func<int, int> startOf)
