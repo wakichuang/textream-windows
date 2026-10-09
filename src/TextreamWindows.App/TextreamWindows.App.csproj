@@ -14,7 +14,7 @@
     <!-- 執行檔叫 TextreamWindows.exe（畫面上的名稱是 Textream for Windows，2026-10-08 瓦基定） -->
     <AssemblyName>TextreamWindows</AssemblyName>
     <!-- 免安裝版的版本號，也用在 zip 檔名（scripts/publish.py）。第一次公開前的預覽版 -->
-    <Version>0.10.0</Version>
+    <Version>0.10.1</Version>
     <!-- 程式圖示：Textream 原版圖示＋右下角四格視窗徽章（scripts/make_icon.py 產生，2026-10-08 瓦基要求） -->
     <ApplicationIcon>Assets/textream-windows.ico</ApplicationIcon>
   </PropertyGroup>
