@@ -47,8 +47,16 @@ public sealed class PromptMatcher
     /// 往回跳之後先不找回位置（2026-10-10 移植 Mac 繁中版 1.7.1.4，wakichuang/textream-zh issue #1）：
     /// 跳轉當下還沒講完的那句、辨識引擎改寫的尾巴、停一下又接著講的原本後面的話，都會在後面找到對得上的地方，把高亮拉回原處。
     /// 講者在新位置往後念到 <see cref="HoldReleaseUnits"/> 個可讀單位才解除；停頓（<see cref="RestartFromCurrentProgress"/>）不算數。
+    /// <para>
+    /// 暫停中仍可以在「落點到原本講到的地方（<see cref="_holdCeiling"/>）之前」找回位置（瓦基 2026-10-12：往上捲之後一時之間辨認不出來）。
+    /// 滾輪的落點是一行的開頭，講者常從那一行中間接著念，離落點超過 5 個字比對就接不上，原本會一直卡在落點。
+    /// 跳轉前講出口的話、引擎改寫的尾巴，都結束在原本的位置或更後面，找到的那一串要結束在原本位置的前面才算數。
+    /// </para>
     /// </summary>
     private bool _holdAnchor;
+
+    /// <summary>往回跳之前講到哪裡（第一次往回跳時記下）。暫停找回位置時，只接受落在這裡前面的位置。</summary>
+    private int _holdCeiling;
 
     public PromptMatcher(PromptScript source, int startingAt = 0, PinyinTable? pinyin = null, SpeechLanguage language = SpeechLanguage.TraditionalChinese)
     {
@@ -123,10 +131,11 @@ public sealed class PromptMatcher
             }
         }
 
-        if (!_holdAnchor && FindAnchor(firstUnit, spokenUnits) is { } anchor && anchor > RecognizedCharacterCount)
+        if (FindAnchor(firstUnit, spokenUnits) is { } anchor && anchor > RecognizedCharacterCount && (!_holdAnchor || IsBeforeHoldCeiling(anchor)))
         {
             RecognizedCharacterCount = anchor;
             _recentMatchPositions.Clear();
+            _holdAnchor = false; // 連續對上夠長、又在原本位置的前面：講者確實在新位置念了
         }
         return RecognizedCharacterCount;
     }
@@ -134,12 +143,18 @@ public sealed class PromptMatcher
     /// <summary>
     /// 使用者點字、滾輪追趕時跳到指定位置（可以往回），跳過標註，並從那裡重新比。
     /// 這是唯一會讓 <see cref="RecognizedCharacterCount"/> 變小的路。對應原版 <c>jump(to:)</c>。
-    /// 往回跳（或原本就在暫停中）時暫停找回位置，見 <see cref="_holdAnchor"/>；往後跳照舊。
+    /// 往回跳時暫停找回位置，見 <see cref="_holdAnchor"/>。往後跳解除暫停（瓦基 2026-10-12）：往上滾去看前面、再往下滾回來，
+    /// 是講者自己選了新位置；原本連往後跳都維持暫停，落點後面的話就再也找不回去。
     /// </summary>
     public int Jump(int offset)
     {
         var target = SpeechTextAlignment.AdvancePastAnnotations(Source, Math.Clamp(offset, 0, Source.CharacterCount));
-        _holdAnchor = _holdAnchor || target < RecognizedCharacterCount;
+        var back = target < RecognizedCharacterCount;
+        if (back && !_holdAnchor)
+        {
+            _holdCeiling = RecognizedCharacterCount;
+        }
+        _holdAnchor = back;
         RecognizedCharacterCount = target;
         MatchStartOffset = target;
         _recentMatchPositions.Clear();
@@ -406,6 +421,12 @@ public sealed class PromptMatcher
     private int RunNeededToJump(int distance) => Language == SpeechLanguage.English
         ? 4 + distance / 100
         : AnchorBaseRun + distance / 50;
+
+    /// <summary>
+    /// 找到的位置在往回跳之前講到的地方前面，而且隔開超過 <see cref="AnchorTailSlack"/> 個可讀單位。
+    /// 找回位置那一串要結束在辨識結果的最後幾個單位內，所以跳轉前講到原本位置的話，最多落在原本位置前 <see cref="AnchorTailSlack"/> 個單位。
+    /// </summary>
+    private bool IsBeforeHoldCeiling(int anchor) => ReadableUnitsBetween(anchor, _holdCeiling) > AnchorTailSlack;
 
     /// <summary>講稿 <paramref name="from"/>～<paramref name="to"/>（不含）之間有幾個可讀單位（不算標註）。</summary>
     private int ReadableUnitsBetween(int from, int to) =>

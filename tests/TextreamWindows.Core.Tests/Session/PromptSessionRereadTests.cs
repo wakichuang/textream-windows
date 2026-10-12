@@ -257,4 +257,42 @@ public class PromptSessionRereadTests
         session.EndOfUtterance();
         Assert.True(session.EffectiveCharacterCount == SentenceEnd(1), $"重念沒跟上，{Describe(session.EffectiveCharacterCount)}");
     }
+
+    /// <summary>
+    /// 往上滾到某一行，從那一行中間接著念（瓦基 2026-10-12 回饋：往上捲之後一時之間辨認不出來）：
+    /// 滾輪的落點是那一行的開頭，講者接著念的地方離落點超過 5 個字時，比對接不上，原本又暫停了找回位置，高亮就卡在落點不動。
+    /// 落點到原本講到的地方之間，照樣可以找回位置。
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AfterScrollingBackReadingFromMidLineIsFollowed(bool streaming)
+    {
+        var session = ReadFirstSentences(4, streaming, out var now);
+
+        session.JumpTo(SentenceStart(1), now);
+        now += 1.5;
+        SaySentence(session, ref now, Spoken[1][9..], streaming); // 從「觀點而且要能獨立看懂」接著念
+
+        Assert.True(session.EffectiveCharacterCount == SentenceEnd(1), $"從那一行中間接著念沒跟上，{Describe(session.EffectiveCharacterCount)}");
+    }
+
+    /// <summary>
+    /// 往上滾去看前面，再往下滾回來接著講（瓦基 2026-10-12 回饋）：往下滾是講者自己選了新位置，不再暫停找回位置，
+    /// 落點後面的話照樣跟得過去。
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ScrollingBackThenForwardAgainKeepsFindingThePlace(bool streaming)
+    {
+        var session = ReadFirstSentences(3, streaming, out var now);
+
+        session.JumpTo(SentenceStart(0), now);
+        session.JumpTo(SentenceStart(2), now + 0.5);
+        now += 2;
+        SaySentence(session, ref now, Spoken[3], streaming);
+
+        Assert.True(session.EffectiveCharacterCount == SentenceEnd(3), $"往回滾再往下滾之後找不回位置，{Describe(session.EffectiveCharacterCount)}");
+    }
 }
