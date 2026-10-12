@@ -183,4 +183,41 @@ public class PromptMatcherToleranceTests
 
         AssertReachesEnd(prompt, progress[^1], "ZH-22");
     }
+
+    private const string LookAheadOpening = "今天要跟大家分享一本談內在小孩的書。";
+
+    private static readonly string[] LookAheadFiller =
+    [
+        "第一段先講背景，作者是一位心理治療師，在德國執業超過二十年。", "第二段講方法，她把人的內心分成兩個小孩和一個大人。",
+        "這個比喻很生活化，讀起來一點也不吃力。", "書裡還附了很多練習，可以一邊讀一邊寫。",
+        "每一章最後都有一段整理，幫你複習重點。", "如果你只想讀一章，我推薦從第三章開始。",
+    ];
+
+    private const string LookAheadTarget = "最後推薦這本書給正在育兒的朋友。";
+
+    /// <summary>ZH-24：往後跳著講約 70 個字（螢幕上看得到的範圍），找回位置跟得過去。</summary>
+    [Fact]
+    public void ZH24_SkippingAboutSeventyCharactersIsFollowed()
+    {
+        var prompt = new PromptScript(LookAheadOpening + string.Concat(LookAheadFiller[..3]) + LookAheadTarget);
+
+        var progress = Feed(new PromptMatcher(prompt), "今天要跟大家分享一本谈内在小孩的书", "最后推荐这本书给正在育儿的朋友");
+
+        AssertReachesEnd(prompt, progress[^1], "ZH-24");
+    }
+
+    /// <summary>
+    /// ZH-25：找回位置只往後找 100 個字（瓦基 2026-10-12：螢幕上顯示的字沒那麼多，往後跳著講也大概 100 字左右；原本 400 字會對到太後面的字）。
+    /// 跳過約 120 個字才念的那句不跟過去。
+    /// </summary>
+    [Fact]
+    public void ZH25_TheAnchorDoesNotLookMoreThanAHundredCharactersAhead()
+    {
+        var prompt = new PromptScript(LookAheadOpening + string.Concat(LookAheadFiller) + LookAheadTarget);
+
+        var progress = Feed(new PromptMatcher(prompt), "今天要跟大家分享一本谈内在小孩的书", "最后推荐这本书给正在育儿的朋友");
+
+        Assert.True(Readable(prompt, progress[1]) - Readable(prompt, progress[0]) <= 2,
+            $"ZH-25：跳到 100 字以外，高亮從可讀字 {Readable(prompt, progress[0])} 跑到 {Readable(prompt, progress[1])}");
+    }
 }

@@ -12,7 +12,7 @@ namespace TextreamWindows.Core.Alignment;
 /// <remarks>
 /// 容錯比原版多兩項（2026-10-08，瓦基照稿念但會插話、跳子標題、改講法再接回）：
 /// 一、防拖走：跳過、漏掉之後才對上的字要「連續」對上才算數。中文同音字多，插話裡零星的「是」「作」「說」會對上講稿，原版會一格一格被拖著走。
-/// 二、找回位置：在講稿後面約 400 個單位內找「現在正在念的那一串」，連續對上夠多就跳過去，接住跳標題、跳句、插話與改講法之後的接回。
+/// 二、找回位置：在講稿後面約 100 個單位內找「現在正在念的那一串」，連續對上夠多就跳過去，接住跳標題、跳句、插話與改講法之後的接回。
 /// <para>
 /// 呼叫方式：<see cref="Match"/> 收的是「上次重新起算以來的完整辨識結果」，sherpa-onnx 的部分結果正好是這樣。
 /// 偵測到一句講完、辨識結果清空時，呼叫 <see cref="RestartFromCurrentProgress"/>（計畫書第 6.2 節）。
@@ -23,8 +23,11 @@ public sealed class PromptMatcher
     /// <summary>對不上時，兩邊各往後最多找幾個單位。</summary>
     private const int MaxSkip = 5;
 
-    /// <summary>找回位置：往後找多遠（可讀單位）。約一分半鐘的朗讀量，涵蓋跳過一個子標題或一兩段。</summary>
-    private const int AnchorLookAhead = 400;
+    /// <summary>
+    /// 找回位置：往後找多遠（可讀單位）。原本 400（約一分半鐘的朗讀量），會對到太後面的字；
+    /// 瓦基 2026-10-12 改成 100：螢幕上看得到的字沒那麼多，往後跳著講大概也是 100 字左右的篇幅。
+    /// </summary>
+    private const int AnchorLookAhead = 100;
 
     /// <summary>找回位置：至少連續對上幾個單位才跳。跳得越遠要求越多，見 <see cref="RunNeededToJump"/>。</summary>
     private const int AnchorBaseRun = 5;
