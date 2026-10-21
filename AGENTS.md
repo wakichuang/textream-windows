@@ -57,6 +57,7 @@ textream-windows/
 1. `dotnet test TextreamWindows.slnx` 全綠，版本號在 `src/TextreamWindows.App/TextreamWindows.App.csproj` 的 `<Version>`。
 2. `python scripts/publish.py` 產生 `publish/Textream-for-Windows-<版本>-win-x64.zip`（單一執行檔＋模型 A＋授權檔＋使用說明）。
 3. 在一台乾淨的 Windows 上解壓縮試一次，再上傳到 GitHub Releases。
+4. 介紹網頁的下載按鈕開頁時會向 GitHub 查最新正式版、直接給 zip，不用改；`site/index.html` 裡 `data-latest-zip` 的 href 是查不到時的備援，順手改成新版的 zip 網址即可。zip 檔名要維持 `-win-x64.zip` 結尾。
 
 ## 回報
 

@@ -310,7 +310,7 @@ footer .sep{margin:0 8px;color:#3a3a44}
     <p class="lede">Textream for Windows 是一套<strong>免費、開源</strong>的提詞機，有逐字追蹤、定速捲動、有講話才捲三種帶稿方式。講稿浮在螢幕最上緣、最靠近鏡頭的地方，也可以改成浮動視窗，或是在第二螢幕全螢幕顯示。語音辨識<strong>全部在你的電腦上進行</strong>，錄影和分享畫面時，觀眾看不到提詞，只有你看得到。</p>
     <p class="for">適合<span>直播主</span>・<span>訪談主持人</span>・<span>簡報講者</span>・<span>Podcaster</span>・<span>影音創作者</span></p>
     <div class="ctas">
-      <a class="btn btn-primary" href="https://github.com/wakichuang/textream-windows/releases/latest" target="_blank" rel="noopener">
+      <a class="btn btn-primary" href="https://github.com/wakichuang/textream-windows/releases/download/v0.11.0/Textream-for-Windows-0.11.0-win-x64.zip" data-latest-zip>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16"/></svg>
         下載 Windows 版（.zip）
       </a>
@@ -517,7 +517,7 @@ footer .sep{margin:0 8px;color:#3a3a44}
     <h2>下載 Textream for Windows</h2>
     <p class="sub">免費、免註冊、免安裝。下載、解壓縮、貼上講稿，就能開始。</p>
     <div class="ctas" style="margin-top:0">
-      <a class="btn btn-primary" href="https://github.com/wakichuang/textream-windows/releases/latest" target="_blank" rel="noopener">
+      <a class="btn btn-primary" href="https://github.com/wakichuang/textream-windows/releases/download/v0.11.0/Textream-for-Windows-0.11.0-win-x64.zip" data-latest-zip>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16"/></svg>
         下載 Windows 版（.zip）
       </a>
@@ -563,6 +563,21 @@ footer .sep{margin:0 8px;color:#3a3a44}
 </footer>
 
 <script>
+/* 下載按鈕直接給 zip：href 先寫死一個版本當備援，開頁後問 GitHub 最新的正式版換成它的 zip */
+(function () {
+  "use strict";
+  var links = document.querySelectorAll("[data-latest-zip]");
+  if (!links.length || !window.fetch) return;
+  fetch("https://api.github.com/repos/wakichuang/textream-windows/releases/latest", { headers: { Accept: "application/vnd.github+json" } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (rel) {
+      var zip = rel && (rel.assets || []).filter(function (a) { return /-win-x64\.zip$/.test(a.name); })[0];
+      if (!zip) return;
+      Array.prototype.forEach.call(links, function (a) { a.href = zip.browser_download_url; });
+    })
+    .catch(function () {});
+})();
+
 (function () {
   "use strict";
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
